@@ -473,13 +473,16 @@ class ChineseQuizScreen(Screen):
         nav.add_widget(self.progress_label)
         layout.add_widget(nav)
         
-        self.question_label = Label(text='找出正确的汉字！', font_size=get_font_size(24),
+        self.question_label = Label(text='听声音，选汉字！', font_size=get_font_size(24),
                                    color=get_color_from_hex('#333333'), size_hint=(1, 0.1))
         layout.add_widget(self.question_label)
         
-        self.display_label = Label(text='?', font_size=get_font_size(80),
-                                  color=get_color_from_hex('#E65100'), size_hint=(1, 0.35))
-        layout.add_widget(self.display_label)
+        # 播放按钮（大喇叭图标）
+        self.play_btn = Button(text='🔊 再听一遍', font_size=get_font_size(36),
+                              background_color=get_color_from_hex('#FF9800'),
+                              background_normal='', size_hint=(1, 0.35))
+        self.play_btn.bind(on_press=self.play_sound)
+        layout.add_widget(self.play_btn)
         
         self.feedback_label = Label(text='', font_size=get_font_size(24),
                                    color=get_color_from_hex('#4CAF50'), size_hint=(1, 0.1))
@@ -510,15 +513,12 @@ class ChineseQuizScreen(Screen):
         self.current_word = random.choice(words)
         char, pinyin, word, emoji = self.current_word
         
-        word_hints = {'人': '小人儿', '口': '门口', '手': '小手', '足': '足球',
-                     '日': '太阳', '月': '月亮', '水': '喝水', '火': '火车',
-                     '山': '高山', '石': '石头', '田': '田地', '土': '泥土',
-                     '大': '大象', '小': '小鸟', '上': '上面', '下': '下面',
-                     '天': '天空', '地': '土地', '花': '鲜花', '草': '小草',
-                     '树': '大树', '鸟': '小鸟'}
-        hint_word = word_hints.get(char, word)
-        self.display_label.text = hint_word
-        self.question_label.text = f'"{hint_word}" 里面有哪个字？'
+        # 显示提示，播放声音
+        self.play_btn.text = f'🔊 点击听声音'
+        self.question_label.text = '听声音，选出正确的汉字！'
+        
+        # 自动播放声音
+        Clock.schedule_once(lambda dt: speak(char), 0.5)
         
         self.answers_layout.clear_widgets()
         all_chars = [w[0] for w in words]
@@ -532,6 +532,11 @@ class ChineseQuizScreen(Screen):
             self.answers_layout.add_widget(btn)
         
         self.progress_label.text = f'{self.session.current_question + 1}/10'
+    
+    def play_sound(self, instance):
+        """点击播放按钮再听一遍"""
+        if self.current_word:
+            speak(self.current_word[0])
     
     def on_answer(self, instance):
         if self.current_word is None:
@@ -734,7 +739,7 @@ class ChineseMatchScreen(Screen):
         nav.add_widget(Label(text='', size_hint=(0.15, 1)))
         layout.add_widget(nav)
         
-        self.hint_label = Label(text='找到汉字和它的拼音配对！', font_size=get_font_size(20),
+        self.hint_label = Label(text='找到汉字和图片配对！', font_size=get_font_size(20),
                                color=get_color_from_hex('#666666'), size_hint=(1, 0.08))
         layout.add_widget(self.hint_label)
         
@@ -763,11 +768,25 @@ class ChineseMatchScreen(Screen):
         self.cards_layout.clear_widgets()
         
         words = ChineseData.get_words(level=2)
-        selected = random.sample(words, 6)
+        # 只选择有明确图片的汉字
+        picture_chars = ['日', '月', '山', '水', '火', '人', '口', '手', '花', '树', '鸟', '草']
+        available = [w for w in words if w[0] in picture_chars]
+        selected = random.sample(available, min(6, len(available)))
+        
+        # 汉字对应的emoji图片
+        char_emojis = {
+            '日': '☀️', '月': '🌙', '山': '⛰️', '水': '💧', '火': '🔥',
+            '人': '👤', '口': '👄', '手': '✋', '足': '🦶', '花': '🌸',
+            '树': '🌳', '鸟': '🐦', '草': '🌿', '石': '🪨', '田': '🌾',
+            '大': '🐘', '小': '🐦', '天': '🌤️', '地': '🌍'
+        }
         
         for char, pinyin, word, emoji in selected:
-            self.card_data.append({'type': 'char', 'value': char, 'match_id': char, 'pinyin': pinyin})
-            self.card_data.append({'type': 'pinyin', 'value': pinyin, 'match_id': char})
+            # 汉字卡片
+            self.card_data.append({'type': 'char', 'value': char, 'match_id': char})
+            # 图片卡片（用emoji代替拼音）
+            pic = char_emojis.get(char, '❓')
+            self.card_data.append({'type': 'picture', 'value': pic, 'match_id': char})
         
         random.shuffle(self.card_data)
         
