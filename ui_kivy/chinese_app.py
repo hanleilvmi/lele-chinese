@@ -39,10 +39,21 @@ def setup_font():
     """配置中文字体"""
     font_paths = []
     if platform == 'android':
+        # Android和鸿蒙系统的字体路径
         font_paths = [
+            # 标准Android字体
             "/system/fonts/NotoSansCJK-Regular.ttc",
             "/system/fonts/DroidSansFallback.ttf",
             "/system/fonts/NotoSansSC-Regular.otf",
+            "/system/fonts/NotoSansHans-Regular.otf",
+            # 鸿蒙系统字体
+            "/system/fonts/HarmonyOS_Sans_SC_Regular.ttf",
+            "/system/fonts/HarmonyOS_Sans_SC.ttf",
+            "/system/fonts/HarmonyOSSans-Regular.ttf",
+            "/system/fonts/DroidSansChinese.ttf",
+            # 华为设备字体
+            "/system/fonts/HwChinese-Regular.ttf",
+            "/system/fonts/Roboto-Regular.ttf",
         ]
     else:
         font_paths = [
@@ -58,6 +69,9 @@ def setup_font():
                 return True
             except:
                 pass
+    
+    # 如果都找不到，尝试不指定字体（使用系统默认）
+    print("警告: 未找到中文字体，使用系统默认")
     return False
 
 setup_font()
