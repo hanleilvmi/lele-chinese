@@ -1,0 +1,382 @@
+{
+  "user_info": {
+    "name": "乐乐",
+    "age": 3,
+    "created_date": ""
+  },
+  "overall": {
+    "total_score": 890,
+    "total_correct": 89,
+    "total_wrong": 3,
+    "days_learned": 6,
+    "last_date": "2026-01-17",
+    "total_time_minutes": 27
+  },
+  "modules": {
+    "literacy": {
+      "score": 230,
+      "correct": 23,
+      "wrong": 0,
+      "time": 0,
+      "level": 3
+    },
+    "pinyin": {
+      "score": 0,
+      "correct": 0,
+      "wrong": 0,
+      "time": 0,
+      "level": 1
+    },
+    "math": {
+      "score": 30,
+      "correct": 3,
+      "wrong": 0,
+      "time": 0,
+      "level": 1
+    },
+    "english": {
+      "score": 0,
+      "correct": 0,
+      "wrong": 0,
+      "time": 0,
+      "level": 1
+    },
+    "thinking": {
+      "score": 130,
+      "correct": 13,
+      "wrong": 3,
+      "time": 0,
+      "level": 3
+    },
+    "vehicles": {
+      "score": 500,
+      "correct": 50,
+      "wrong": 0,
+      "time": 0,
+      "level": 3
+    }
+  },
+  "rewards": {
+    "stars": 29,
+    "badges": [
+      "first_day",
+      "literacy_master",
+      "first_star",
+      "perfect_ten",
+      "ten_stars",
+      "daily_goal",
+      "night_owl",
+      "math_master"
+    ],
+    "achievements": []
+  },
+  "wrong_questions": {
+    "literacy": [],
+    "pinyin": [],
+    "math": [],
+    "english": []
+  },
+  "daily_records": [
+    {
+      "date": "2025-12-31",
+      "minutes": 16
+    },
+    {
+      "date": "2026-01-15",
+      "minutes": 3
+    },
+    {
+      "date": "2026-01-17",
+      "minutes": 8
+    }
+  ],
+  "mastered_items": {
+    "characters": [],
+    "pinyin": [],
+    "english_words": [],
+    "numbers": [],
+    "shapes": []
+  },
+  "daily_plan": {
+    "target_questions": 30,
+    "target_minutes": 20,
+    "rest_reminder": 15,
+    "today_questions": 2,
+    "today_correct": 2,
+    "today_minutes": 0,
+    "today_date": "2026-01-23",
+    "last_rest_reminder": ""
+  },
+  "review_items": {
+    "literacy": [
+      {
+        "item": "看图选字:🐟",
+        "display_name": "看图选字:🐟",
+        "category": "literacy",
+        "learn_date": "2025-12-30",
+        "review_count": 0,
+        "next_review": "2025-12-31",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      },
+      {
+        "item": "看图选字:🌸",
+        "display_name": "看图选字:🌸",
+        "category": "literacy",
+        "learn_date": "2025-12-30",
+        "review_count": 0,
+        "next_review": "2025-12-31",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      },
+      {
+        "item": "看图选字:🐦",
+        "display_name": "看图选字:🐦",
+        "category": "literacy",
+        "learn_date": "2025-12-30",
+        "review_count": 0,
+        "next_review": "2025-12-31",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      },
+      {
+        "item": "看图选字:🌿",
+        "display_name": "看图选字:🌿",
+        "category": "literacy",
+        "learn_date": "2025-12-30",
+        "review_count": 0,
+        "next_review": "2025-12-31",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      },
+      {
+        "item": "看图选字:👩",
+        "display_name": "看图选字:👩",
+        "category": "literacy",
+        "learn_date": "2025-12-31",
+        "review_count": 0,
+        "next_review": "2026-01-01",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      },
+      {
+        "item": "看图选字:🔥",
+        "display_name": "看图选字:🔥",
+        "category": "literacy",
+        "learn_date": "2025-12-31",
+        "review_count": 0,
+        "next_review": "2026-01-01",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      },
+      {
+        "item": "看图选字:🔓",
+        "display_name": "看图选字:🔓",
+        "category": "literacy",
+        "learn_date": "2025-12-31",
+        "review_count": 0,
+        "next_review": "2026-01-01",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      },
+      {
+        "item": "看图选字:👤",
+        "display_name": "看图选字:👤",
+        "category": "literacy",
+        "learn_date": "2025-12-31",
+        "review_count": 0,
+        "next_review": "2026-01-01",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      },
+      {
+        "item": "看图选字:🔒",
+        "display_name": "看图选字:🔒",
+        "category": "literacy",
+        "learn_date": "2025-12-31",
+        "review_count": 0,
+        "next_review": "2026-01-01",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      },
+      {
+        "item": "听音选字:饭",
+        "display_name": "听音选字:饭",
+        "category": "literacy",
+        "learn_date": "2025-12-31",
+        "review_count": 0,
+        "next_review": "2026-01-01",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      },
+      {
+        "item": "听音选字:月",
+        "display_name": "听音选字:月",
+        "category": "literacy",
+        "learn_date": "2025-12-31",
+        "review_count": 0,
+        "next_review": "2026-01-01",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      },
+      {
+        "item": "听音选字:日",
+        "display_name": "听音选字:日",
+        "category": "literacy",
+        "learn_date": "2025-12-31",
+        "review_count": 0,
+        "next_review": "2026-01-01",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      },
+      {
+        "item": "听音选字:一",
+        "display_name": "听音选字:一",
+        "category": "literacy",
+        "learn_date": "2025-12-31",
+        "review_count": 0,
+        "next_review": "2026-01-01",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      },
+      {
+        "item": "听音选字:土",
+        "display_name": "听音选字:土",
+        "category": "literacy",
+        "learn_date": "2025-12-31",
+        "review_count": 0,
+        "next_review": "2026-01-01",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      },
+      {
+        "item": "听音选字:好",
+        "display_name": "听音选字:好",
+        "category": "literacy",
+        "learn_date": "2025-12-31",
+        "review_count": 0,
+        "next_review": "2026-01-01",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      },
+      {
+        "item": "听音选字:天",
+        "display_name": "听音选字:天",
+        "category": "literacy",
+        "learn_date": "2025-12-31",
+        "review_count": 0,
+        "next_review": "2026-01-01",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      },
+      {
+        "item": "听音选字:比",
+        "display_name": "听音选字:比",
+        "category": "literacy",
+        "learn_date": "2025-12-31",
+        "review_count": 0,
+        "next_review": "2026-01-01",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      },
+      {
+        "item": "听音选字:树",
+        "display_name": "听音选字:树",
+        "category": "literacy",
+        "learn_date": "2026-01-15",
+        "review_count": 0,
+        "next_review": "2026-01-16",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      },
+      {
+        "item": "听音选字:开",
+        "display_name": "听音选字:开",
+        "category": "literacy",
+        "learn_date": "2026-01-15",
+        "review_count": 0,
+        "next_review": "2026-01-16",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      },
+      {
+        "item": "可",
+        "display_name": "可",
+        "category": "literacy",
+        "learn_date": "2026-01-23",
+        "review_count": 0,
+        "next_review": "2026-01-24",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      },
+      {
+        "item": "娘",
+        "display_name": "娘",
+        "category": "literacy",
+        "learn_date": "2026-01-23",
+        "review_count": 0,
+        "next_review": "2026-01-24",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      }
+    ],
+    "pinyin": [],
+    "english": [],
+    "math": [
+      {
+        "item": "加法:4+1",
+        "display_name": "加法:4+1 = 5",
+        "category": "math",
+        "learn_date": "2025-12-30",
+        "review_count": 0,
+        "next_review": "2025-12-31",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      },
+      {
+        "item": "加法:1+2",
+        "display_name": "加法:1+2 = 3",
+        "category": "math",
+        "learn_date": "2025-12-30",
+        "review_count": 0,
+        "next_review": "2025-12-31",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      },
+      {
+        "item": "加法:3+1",
+        "display_name": "加法:3+1 = 4",
+        "category": "math",
+        "learn_date": "2025-12-30",
+        "review_count": 0,
+        "next_review": "2025-12-31",
+        "ease_factor": 2.5,
+        "correct_streak": 0
+      }
+    ]
+  },
+  "parent_settings": {
+    "password": "",
+    "daily_time_limit": 60,
+    "session_time_limit": 30,
+    "allowed_hours_start": 8,
+    "allowed_hours_end": 21,
+    "weekend_extra_time": 15,
+    "lock_after_limit": false,
+    "show_answers": true,
+    "difficulty_lock": false,
+    "notifications": []
+  },
+  "daily_challenges": {
+    "date": "",
+    "challenges": [],
+    "completed": [],
+    "streak": 0,
+    "total_completed": 0
+  },
+  "total_score": 0,
+  "days_learned": 1,
+  "last_date": "2025-12-29",
+  "current_streak": 2,
+  "night_owl_achieved": true
+}

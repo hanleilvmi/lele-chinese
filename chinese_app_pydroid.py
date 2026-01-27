@@ -43,28 +43,46 @@ for font_path in FONT_PATHS:
 # ==================== 汉字数据 ====================
 class ChineseData:
     BASIC_WORDS = [
-        ("人", "rén", "人们", "👤"), ("口", "kǒu", "口水", "👄"),
-        ("手", "shǒu", "小手", "✋"), ("足", "zú", "足球", "⚽"),
-        ("日", "rì", "日出", "☀️"), ("月", "yuè", "月亮", "🌙"),
-        ("水", "shuǐ", "喝水", "💧"), ("火", "huǒ", "火焰", "🔥"),
-        ("山", "shān", "高山", "⛰️"), ("石", "shí", "石头", "🪨"),
-        ("田", "tián", "田地", "🌾"), ("土", "tǔ", "泥土", "🟤"),
+        ("人", "rén", "人们", "📝"),
+        ("口", "kǒu", "口水", "📝"),
+        ("手", "shǒu", "小手", "📝"),
+        ("足", "zú", "足球", "📝"),
+        ("日", "rì", "日出", "📝"),
+        ("月", "yuè", "月亮", "📝"),
+        ("水", "shuǐ", "喝水", "📝"),
+        ("火", "huǒ", "火焰", "📝"),
+        ("山", "shān", "高山", "📝"),
+        ("石", "shí", "石头", "📝"),
+        ("田", "tián", "田地", "📝"),
+        ("土", "tǔ", "泥土", "📝"),
     ]
     INTERMEDIATE_WORDS = [
-        ("大", "dà", "大小", "📏"), ("小", "xiǎo", "小鸟", "🐦"),
-        ("上", "shàng", "上面", "⬆️"), ("下", "xià", "下面", "⬇️"),
-        ("左", "zuǒ", "左边", "⬅️"), ("右", "yòu", "右边", "➡️"),
-        ("天", "tiān", "天空", "🌤️"), ("地", "dì", "大地", "🌍"),
-        ("花", "huā", "鲜花", "🌸"), ("草", "cǎo", "小草", "🌿"),
-        ("树", "shù", "大树", "🌳"), ("鸟", "niǎo", "小鸟", "🐦"),
+        ("大", "dà", "大小", "📝"),
+        ("小", "xiǎo", "小鸟", "📝"),
+        ("上", "shàng", "上面", "📝"),
+        ("下", "xià", "下面", "📝"),
+        ("左", "zuǒ", "左边", "📝"),
+        ("右", "yòu", "右边", "📝"),
+        ("天", "tiān", "天空", "📝"),
+        ("地", "dì", "大地", "📝"),
+        ("花", "huā", "鲜花", "📝"),
+        ("草", "cǎo", "小草", "📝"),
+        ("树", "shù", "大树", "📝"),
+        ("鸟", "niǎo", "小鸟", "📝"),
     ]
     ADVANCED_WORDS = [
-        ("爸", "bà", "爸爸", "👨"), ("妈", "mā", "妈妈", "👩"),
-        ("爷", "yé", "爷爷", "👴"), ("奶", "nǎi", "奶奶", "👵"),
-        ("哥", "gē", "哥哥", "👦"), ("姐", "jiě", "姐姐", "👧"),
-        ("弟", "dì", "弟弟", "👦"), ("妹", "mèi", "妹妹", "👧"),
-        ("吃", "chī", "吃饭", "🍚"), ("喝", "hē", "喝水", "🥤"),
-        ("看", "kàn", "看书", "📖"), ("听", "tīng", "听歌", "🎵"),
+        ("爸", "bà", "爸爸", "📝"),
+        ("妈", "mā", "妈妈", "📝"),
+        ("爷", "yé", "爷爷", "📝"),
+        ("奶", "nǎi", "奶奶", "📝"),
+        ("哥", "gē", "哥哥", "📝"),
+        ("姐", "jiě", "姐姐", "📝"),
+        ("弟", "dì", "弟弟", "📝"),
+        ("妹", "mèi", "妹妹", "📝"),
+        ("吃", "chī", "吃饭", "📝"),
+        ("喝", "hē", "喝水", "📝"),
+        ("看", "kàn", "看书", "📝"),
+        ("听", "tīng", "听歌", "📝"),
     ]
     
     @classmethod
@@ -144,26 +162,46 @@ class GameLogic:
 
 # ==================== 语音模块 ====================
 audio = None
+ANDROID_TTS_AVAILABLE = False
+
 try:
     from jnius import autoclass
     TTS = autoclass('android.speech.tts.TextToSpeech')
     Activity = autoclass('org.kivy.android.PythonActivity')
     Locale = autoclass('java.util.Locale')
+    ANDROID_TTS_AVAILABLE = True
     
     class AndroidTTS:
         def __init__(self):
-            self.tts = TTS(Activity.mActivity, None)
-            self.tts.setLanguage(Locale.CHINESE)
+            try:
+                self.tts = TTS(Activity.mActivity, None)
+                self.tts.setLanguage(Locale.CHINESE)
+                self.ready = True
+            except Exception as e:
+                print(f"TTS初始化失败: {e}")
+                self.ready = False
+                self.tts = None
+        
         def speak(self, text):
-            self.tts.speak(text, TTS.QUEUE_FLUSH, None, None)
+            if self.ready and self.tts:
+                try:
+                    self.tts.speak(text, TTS.QUEUE_FLUSH, None, None)
+                except Exception as e:
+                    print(f"TTS播放失败: {e}")
     
     audio = AndroidTTS()
-except:
-    pass
+    print("Android TTS 初始化成功")
+except Exception as e:
+    print(f"非Android平台或TTS不可用: {e}")
+    audio = None
 
 def speak(text):
+    """安全的语音播放"""
     if audio:
-        audio.speak(text)
+        try:
+            audio.speak(text)
+        except:
+            pass  # 静默处理错误
 
 PRAISES = ["太棒了！", "真聪明！", "做得好！", "你真厉害！", "汪汪队为你骄傲！", "没有困难的工作，只有勇敢的狗狗！"]
 ENCOURAGES = ["没关系，再试一次！", "加油，你可以的！", "汪汪队永不放弃！", "勇敢的狗狗不怕困难！"]
@@ -302,7 +340,7 @@ class ChineseMenuScreen(Screen):
             ('?', '汉字测验', '#66BB6A', 'quiz'),
             ('对', '汉字配对', '#42A5F5', 'match'),
             ('锤', '打地鼠', '#FFD93D', 'whack'),
-            ('时', '限时挑战', '#9C27B0', 'challenge'),
+            ('关', '闯关模式', '#9C27B0', 'challenge'),
         ]
         
         for icon, title, color, screen in game_list:
@@ -773,19 +811,19 @@ class ChineseMatchScreen(Screen):
         available = [w for w in words if w[0] in picture_chars]
         selected = random.sample(available, min(6, len(available)))
         
-        # 汉字对应的emoji图片
-        char_emojis = {
-            '日': '☀️', '月': '🌙', '山': '⛰️', '水': '💧', '火': '🔥',
-            '人': '👤', '口': '👄', '手': '✋', '足': '🦶', '花': '🌸',
-            '树': '🌳', '鸟': '🐦', '草': '🌿', '石': '🪨', '田': '🌾',
-            '大': '🐘', '小': '🐦', '天': '🌤️', '地': '🌍'
+        # 汉字对应的图片描述（用中文代替emoji）
+        char_pics = {
+            '日': '太阳', '月': '月亮', '山': '高山', '水': '水滴', '火': '火焰',
+            '人': '小人', '口': '嘴巴', '手': '小手', '足': '脚丫', '花': '鲜花',
+            '树': '大树', '鸟': '小鸟', '草': '小草', '石': '石头', '田': '田地',
+            '大': '大的', '小': '小的', '天': '天空', '地': '大地'
         }
         
         for char, pinyin, word, emoji in selected:
             # 汉字卡片
             self.card_data.append({'type': 'char', 'value': char, 'match_id': char})
-            # 图片卡片（用emoji代替拼音）
-            pic = char_emojis.get(char, '❓')
+            # 图片描述卡片
+            pic = char_pics.get(char, '?')
             self.card_data.append({'type': 'picture', 'value': pic, 'match_id': char})
         
         random.shuffle(self.card_data)
@@ -1047,16 +1085,34 @@ class ChineseWhackScreen(Screen):
             hole.background_color = get_color_from_hex('#4CAF50')
 
 
-# ==================== 限时挑战界面 ====================
+# ==================== 闯关模式界面 ====================
 class ChineseChallengeScreen(Screen):
+    """闯关模式 - 无时间压力，一关一关闯，解锁汪汪队狗狗"""
+    
+    # 每关解锁的狗狗
+    LEVEL_PUPPIES = {
+        1: ('阿奇', '警犬阿奇加入你的队伍！'),
+        2: ('毛毛', '消防犬毛毛来帮忙啦！'),
+        3: ('天天', '飞行犬天天飞来了！'),
+        4: ('灰灰', '环保犬灰灰报到！'),
+        5: ('路马', '水上救援路马来了！'),
+        6: ('小砾', '工程犬小砾准备好了！'),
+        7: ('珠珠', '雪地救援珠珠加入！'),
+        8: ('小克', '丛林犬小克出动！'),
+        9: ('莱德', '队长莱德为你骄傲！'),
+        10: ('多个狗狗', '汪汪队全员集合！'),
+    }
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.logic = GameLogic()
-        self.session = None
         self.current_word = None
-        self.time_left = 60
-        self.timer_event = None
-        self.combo = 0
+        self.current_level = 1
+        self.level_progress = 0
+        self.level_correct = 0
+        self.total_score = 0
+        self.unlocked_puppies = []
+        self.popup = None
         self.build_ui()
     
     def build_ui(self):
@@ -1070,30 +1126,35 @@ class ChineseChallengeScreen(Screen):
         nav = BoxLayout(size_hint=(1, 0.1))
         back_btn = Button(text='< 返回', size_hint=(0.15, 1), font_size=get_font_size(18),
                          background_color=get_color_from_hex('#9C27B0'), background_normal='')
-        back_btn.bind(on_press=self.go_back)
+        back_btn.bind(on_press=lambda x: setattr(self.manager, 'current', 'menu'))
         nav.add_widget(back_btn)
-        nav.add_widget(Label(text='【限时挑战】', font_size=get_font_size(28),
+        nav.add_widget(Label(text='【闯关模式】', font_size=get_font_size(28),
                             color=get_color_from_hex('#7B1FA2'), bold=True, size_hint=(0.4, 1)))
-        self.timer_label = Label(text='60秒', font_size=get_font_size(28),
-                                color=get_color_from_hex('#F44336'), bold=True, size_hint=(0.15, 1))
-        nav.add_widget(self.timer_label)
+        self.level_label = Label(text='第1关', font_size=get_font_size(24),
+                                color=get_color_from_hex('#FF9800'), bold=True, size_hint=(0.15, 1))
+        nav.add_widget(self.level_label)
         self.score_label = Label(text='得分: 0', font_size=get_font_size(20),
                                 color=get_color_from_hex('#FF6B6B'), size_hint=(0.15, 1))
         nav.add_widget(self.score_label)
-        self.combo_label = Label(text='', font_size=get_font_size(16),
-                                color=get_color_from_hex('#FF9800'), size_hint=(0.15, 1))
-        nav.add_widget(self.combo_label)
+        self.progress_label = Label(text='0/5', font_size=get_font_size(18),
+                                   color=get_color_from_hex('#666666'), size_hint=(0.15, 1))
+        nav.add_widget(self.progress_label)
         layout.add_widget(nav)
         
-        self.hint_label = Label(text='60秒内答对越多越好！', font_size=get_font_size(20),
+        self.hint_label = Label(text='每关答对3题即可过关！', font_size=get_font_size(20),
                                color=get_color_from_hex('#333333'), size_hint=(1, 0.08))
         layout.add_widget(self.hint_label)
         
-        self.char_label = Label(text='准备', font_size=get_font_size(120),
-                               color=get_color_from_hex('#7B1FA2'), size_hint=(1, 0.3))
+        # 星星进度显示
+        self.stars_label = Label(text='☆ ☆ ☆', font_size=get_font_size(36),
+                                color=get_color_from_hex('#FFD700'), size_hint=(1, 0.08))
+        layout.add_widget(self.stars_label)
+        
+        self.char_label = Label(text='准备闯关', font_size=get_font_size(100),
+                               color=get_color_from_hex('#7B1FA2'), size_hint=(1, 0.25))
         layout.add_widget(self.char_label)
         
-        self.question_label = Label(text='', font_size=get_font_size(22),
+        self.question_label = Label(text='点击开始，一起闯关吧！', font_size=get_font_size(22),
                                    color=get_color_from_hex('#666666'), size_hint=(1, 0.08))
         layout.add_widget(self.question_label)
         
@@ -1104,58 +1165,69 @@ class ChineseChallengeScreen(Screen):
         self.answers_layout = GridLayout(cols=4, spacing=dp(10), padding=dp(15), size_hint=(1, 0.22))
         layout.add_widget(self.answers_layout)
         
-        self.start_btn = Button(text='开始挑战！', font_size=get_font_size(24), size_hint=(1, 0.1),
+        self.start_btn = Button(text='开始闯关！', font_size=get_font_size(24), size_hint=(1, 0.1),
                                background_color=get_color_from_hex('#9C27B0'), background_normal='')
         self.start_btn.bind(on_press=self.start_game)
         layout.add_widget(self.start_btn)
         self.add_widget(layout)
     
-    def go_back(self, instance):
-        self.stop_timer()
-        self.manager.current = 'menu'
-    
-    def stop_timer(self):
-        if self.timer_event:
-            self.timer_event.cancel()
-            self.timer_event = None
-    
     def start_game(self, instance):
-        self.session = self.logic.create_session(GameType.CHALLENGE, total_questions=100)
-        self.time_left = 60
-        self.combo = 0
+        self.current_level = 1
+        self.level_progress = 0
+        self.level_correct = 0
+        self.total_score = 0
+        self.unlocked_puppies = []
         self.score_label.text = '得分: 0'
-        self.combo_label.text = ''
+        self.level_label.text = '第1关'
         self.feedback_label.text = ''
         self.start_btn.text = '重新开始'
-        self.start_btn.disabled = True
-        self.timer_event = Clock.schedule_interval(self.update_timer, 1)
+        self.update_stars()
         self.next_question()
     
-    def update_timer(self, dt):
-        self.time_left -= 1
-        self.timer_label.text = f'{self.time_left}秒'
-        if self.time_left <= 10:
-            self.timer_label.color = get_color_from_hex('#F44336')
-        elif self.time_left <= 30:
-            self.timer_label.color = get_color_from_hex('#FF9800')
-        if self.time_left <= 0:
-            self.stop_timer()
-            self.show_result()
+    def update_stars(self):
+        """更新星星显示"""
+        filled = self.level_correct
+        empty = 3 - filled
+        self.stars_label.text = '★ ' * filled + '☆ ' * empty
     
     def next_question(self):
+        # 检查是否过关
+        if self.level_correct >= 3:
+            self.level_complete()
+            return
+        
+        # 检查是否本关失败（答了5题但没答对3题）
+        if self.level_progress >= 5:
+            self.level_failed()
+            return
+        
         words = ChineseData.get_words(level=2)
         self.current_word = random.choice(words)
         char, pinyin, word, emoji = self.current_word
         
-        word_hints = {'人': '小人儿', '口': '门口', '手': '小手', '足': '足球',
-                     '日': '太阳', '月': '月亮', '水': '喝水', '火': '火车',
-                     '山': '高山', '石': '石头', '田': '田地', '土': '泥土',
-                     '大': '大象', '小': '小鸟', '上': '上面', '下': '下面',
-                     '天': '天空', '地': '土地', '花': '鲜花', '草': '小草',
-                     '树': '大树', '鸟': '小鸟'}
-        hint_word = word_hints.get(char, word)
-        self.char_label.text = hint_word
-        self.question_label.text = '找出里面的字！'
+        # 根据关卡调整难度
+        if self.current_level <= 3:
+            # 前3关：显示词语，选汉字（词语必须包含目标字）
+            word_hints = {'人': '人们', '口': '门口', '手': '小手', '足': '足球',
+                         '日': '日出', '月': '月亮', '水': '喝水', '火': '火车',
+                         '山': '高山', '石': '石头', '田': '田地', '土': '泥土',
+                         '大': '大小', '小': '大小', '上': '上面', '下': '下面',
+                         '天': '天空', '地': '地上', '花': '花朵', '草': '小草',
+                         '树': '大树', '鸟': '小鸟', '左': '左边', '右': '右边',
+                         '爸': '爸爸', '妈': '妈妈', '爷': '爷爷', '奶': '奶奶',
+                         '哥': '哥哥', '姐': '姐姐', '弟': '弟弟', '妹': '妹妹',
+                         '吃': '吃饭', '喝': '喝水', '看': '看书', '听': '听歌'}
+            hint_word = word_hints.get(char, word)
+            # 确保提示词包含目标字
+            if char not in hint_word:
+                hint_word = word  # 用默认词组
+            self.char_label.text = hint_word
+            self.question_label.text = '找出里面的字！'
+        else:
+            # 4关以后：听声音选字
+            self.char_label.text = '🔊'
+            self.question_label.text = '听声音，选汉字！'
+            Clock.schedule_once(lambda dt: speak(char), 0.3)
         
         self.answers_layout.clear_widgets()
         all_chars = [w[0] for w in words]
@@ -1165,59 +1237,156 @@ class ChineseChallengeScreen(Screen):
         for i, opt in enumerate(options):
             btn = Button(text=opt, font_size=get_font_size(52),
                         background_color=get_color_from_hex(colors[i]), background_normal='', bold=True)
-            btn.disabled = False
             btn.bind(on_press=self.on_answer)
             self.answers_layout.add_widget(btn)
+        
+        self.progress_label.text = f'{self.level_progress + 1}/5'
     
     def on_answer(self, instance):
-        if self.current_word is None or self.time_left <= 0:
+        if self.current_word is None:
             return
         
         user_answer = instance.text
         correct_answer = self.current_word[0]
         is_correct = user_answer == correct_answer
         
+        self.level_progress += 1
+        
         if is_correct:
-            self.combo += 1
-            bonus = min(self.combo, 5)
-            points = 10 * bonus
-            self.session.add_correct(points)
-            self.feedback_label.text = f'正确！+{points}分'
+            self.level_correct += 1
+            self.total_score += 10 * self.current_level  # 关卡越高分数越多
+            self.score_label.text = f'得分: {self.total_score}'
+            self.feedback_label.text = '答对了！太棒了！'
             self.feedback_label.color = get_color_from_hex('#4CAF50')
-            if self.combo >= 3:
-                self.combo_label.text = f'{self.combo}连击!'
-                self.combo_label.color = get_color_from_hex('#FF9800')
+            instance.background_color = get_color_from_hex('#4CAF50')
+            play_praise()
         else:
-            self.combo = 0
-            self.combo_label.text = ''
-            self.session.add_wrong()
-            self.feedback_label.text = f'错误！答案是 {correct_answer}'
-            self.feedback_label.color = get_color_from_hex('#F44336')
+            self.feedback_label.text = f'答案是 {correct_answer}，没关系继续！'
+            self.feedback_label.color = get_color_from_hex('#FF9800')
+            instance.background_color = get_color_from_hex('#FF9800')
+            play_encourage()
         
-        self.score_label.text = f'得分: {self.session.score}'
-        Clock.schedule_once(lambda dt: self.next_question(), 0.5)
+        self.update_stars()
+        
+        for btn in self.answers_layout.children:
+            btn.disabled = True
+        
+        Clock.schedule_once(lambda dt: self.next_question(), 1.2)
     
-    def show_result(self):
-        self.start_btn.disabled = False
-        total = self.session.correct_count + self.session.wrong_count
-        score = self.session.score
+    def level_complete(self):
+        """过关成功 - 显示解锁的狗狗"""
+        completed_level = self.current_level
         
-        if score >= 300:
-            rank, stars = '超级天才！', '★★★'
-        elif score >= 200:
-            rank, stars = '非常棒！', '★★☆'
-        elif score >= 100:
-            rank, stars = '继续加油！', '★☆☆'
+        # 获取解锁的狗狗
+        if completed_level in self.LEVEL_PUPPIES:
+            puppy_name, puppy_msg = self.LEVEL_PUPPIES[completed_level]
+            self.unlocked_puppies.append(puppy_name)
+            # 显示狗狗解锁弹窗
+            self.show_puppy_unlock(puppy_name, puppy_msg, completed_level)
         else:
-            rank, stars = '多多练习！', '☆☆☆'
+            self._continue_after_unlock()
+    
+    def show_puppy_unlock(self, puppy_name, puppy_msg, level):
+        """显示狗狗解锁弹窗"""
+        from kivy.uix.modalview import ModalView
+        from kivy.uix.image import Image
+        import os
         
-        self.char_label.text = stars
-        self.question_label.text = rank
-        self.hint_label.text = '挑战结束！'
-        self.feedback_label.text = f'答对{self.session.correct_count}题，得分{score}分'
-        self.timer_label.text = '完成'
-        self.timer_label.color = get_color_from_hex('#4CAF50')
+        popup = ModalView(size_hint=(0.8, 0.8), auto_dismiss=False)
+        content = BoxLayout(orientation='vertical', padding=dp(20), spacing=dp(15))
+        
+        with content.canvas.before:
+            Color(*get_color_from_hex('#FFF8E1'))
+            self.popup_bg = Rectangle(pos=content.pos, size=content.size)
+        content.bind(pos=lambda i,v: setattr(self.popup_bg, 'pos', v),
+                    size=lambda i,v: setattr(self.popup_bg, 'size', v))
+        
+        content.add_widget(Label(text=f'🎉 第{level}关 过关！🎉', font_size=get_font_size(32),
+                                color=get_color_from_hex('#FF6B00'), bold=True, size_hint=(1, 0.12)))
+        content.add_widget(Label(text='解锁新队员！', font_size=get_font_size(24),
+                                color=get_color_from_hex('#4CAF50'), size_hint=(1, 0.08)))
+        
+        # 狗狗图片（平板上需要完整路径）
+        img_path = os.path.join('汪汪队图片', f'{puppy_name}.jpg')
+        if os.path.exists(img_path):
+            img = Image(source=img_path, size_hint=(1, 0.5), allow_stretch=True)
+            content.add_widget(img)
+        else:
+            content.add_widget(Label(text=puppy_name, font_size=get_font_size(60),
+                                    color=get_color_from_hex('#FF6B00'), size_hint=(1, 0.5)))
+        
+        content.add_widget(Label(text=puppy_msg, font_size=get_font_size(22),
+                                color=get_color_from_hex('#333333'), size_hint=(1, 0.1)))
+        
+        continue_btn = Button(text='继续闯关！', font_size=get_font_size(24), size_hint=(1, 0.12),
+                             background_color=get_color_from_hex('#4CAF50'), background_normal='')
+        continue_btn.bind(on_press=lambda x: self.close_popup_and_continue(popup))
+        content.add_widget(continue_btn)
+        
+        popup.add_widget(content)
+        popup.open()
+        self.popup = popup
+        speak(puppy_msg)
+    
+    def close_popup_and_continue(self, popup):
+        popup.dismiss()
+        self._continue_after_unlock()
+    
+    def _continue_after_unlock(self):
+        """解锁后继续游戏"""
+        self.hint_label.text = f'🎉 过关啦！🎉'
+        self.char_label.text = '棒！'
+        self.question_label.text = ''
+        self.feedback_label.text = ''
+        self.stars_label.text = '★ ★ ★'
+        
+        self.current_level += 1
+        self.level_progress = 0
+        self.level_correct = 0
+        
+        if self.current_level > 10:
+            Clock.schedule_once(lambda dt: self.game_complete(), 0.5)
+        else:
+            self.level_label.text = f'第{self.current_level}关'
+            Clock.schedule_once(lambda dt: self.start_new_level(), 0.5)
+    
+    def start_new_level(self):
+        self.hint_label.text = f'第{self.current_level}关开始！答对3题过关！'
+        self.update_stars()
+        self.next_question()
+    
+    def level_failed(self):
+        """本关失败，可以重试"""
+        self.hint_label.text = f'第{self.current_level}关 差一点点！'
+        self.char_label.text = '加油'
+        self.question_label.text = ''
+        self.feedback_label.text = '点击重试本关'
+        self.feedback_label.color = get_color_from_hex('#FF9800')
         self.answers_layout.clear_widgets()
+        
+        retry_btn = Button(text='重试本关', font_size=get_font_size(28),
+                          background_color=get_color_from_hex('#FF9800'), background_normal='')
+        retry_btn.bind(on_press=self.retry_level)
+        self.answers_layout.add_widget(retry_btn)
+    
+    def retry_level(self, instance):
+        self.level_progress = 0
+        self.level_correct = 0
+        self.hint_label.text = f'第{self.current_level}关 再来一次！'
+        self.update_stars()
+        self.next_question()
+    
+    def game_complete(self):
+        """全部通关"""
+        self.hint_label.text = '🏆 恭喜通关！你太厉害了！🏆'
+        self.char_label.text = '冠军'
+        self.stars_label.text = '🌟 🌟 🌟'
+        self.question_label.text = f'总得分: {self.total_score}'
+        self.feedback_label.text = f'收集了 {len(self.unlocked_puppies)} 只狗狗！'
+        self.feedback_label.color = get_color_from_hex('#FFD700')
+        self.answers_layout.clear_widgets()
+        self.level_label.text = '通关！'
+        speak("恭喜你，全部通关了，汪汪队全员为你骄傲！")
 
 # ==================== 主应用 ====================
 class ChineseLearnApp(App):
