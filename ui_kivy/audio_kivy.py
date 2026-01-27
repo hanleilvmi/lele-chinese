@@ -76,22 +76,23 @@ class KivyAudio(AudioInterface):
         self.platform = PLATFORM
         self.tts = None
         self.tts_ready = False
-        self.temp_dir = tempfile.mkdtemp()
+        self.temp_dir = None
         self.speech_id = 0
         self.current_sound = None
         self.tts_lock = threading.Lock()
         
-        # 初始化
+        # 安全创建临时目录
+        try:
+            self.temp_dir = tempfile.mkdtemp()
+        except Exception as e:
+            print(f"创建临时目录失败: {e}")
+            self.temp_dir = None
+        
+        # 初始化TTS - 延迟初始化Android TTS
         if self.platform == 'android' and ANDROID_TTS:
-            try:
-                # Android TTS 初始化
-                self.tts = TTS(Activity.mActivity, None)
-                self.tts.setLanguage(Locale.CHINESE)
-                self.tts_ready = True
-                print("Android TTS 初始化成功")
-            except Exception as e:
-                print(f"Android TTS 初始化失败: {e}")
-                self.tts_ready = False
+            # Android TTS需要延迟初始化，等Activity准备好
+            from kivy.clock import Clock
+            Clock.schedule_once(self._init_android_tts, 1.0)
         elif EDGE_TTS_AVAILABLE:
             self.tts_ready = True
             print("Edge TTS 初始化成功")
@@ -110,6 +111,22 @@ class KivyAudio(AudioInterface):
                 print("pyttsx3 TTS 初始化成功")
             except Exception as e:
                 print(f"TTS 初始化失败: {e}")
+    
+    def _init_android_tts(self, dt):
+        """延迟初始化Android TTS"""
+        try:
+            if Activity.mActivity is not None:
+                self.tts = TTS(Activity.mActivity, None)
+                self.tts.setLanguage(Locale.CHINESE)
+                self.tts_ready = True
+                print("Android TTS 初始化成功")
+            else:
+                print("Activity未准备好，稍后重试")
+                from kivy.clock import Clock
+                Clock.schedule_once(self._init_android_tts, 1.0)
+        except Exception as e:
+            print(f"Android TTS 初始化失败: {e}")
+            self.tts_ready = False
     
     def speak(self, text: str, rate: str = "+0%"):
         """朗读文字（异步）"""

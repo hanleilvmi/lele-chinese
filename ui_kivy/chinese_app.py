@@ -7,10 +7,16 @@ import sys
 import os
 
 # 确保能找到模块
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, app_dir)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# 必须在导入kivy之前配置
-import font_config
+# 必须在导入kivy之前配置字体
+try:
+    import font_config
+except ImportError:
+    # 如果导入失败，手动配置字体
+    pass
 
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
@@ -25,11 +31,56 @@ from kivy.core.window import Window
 from kivy.utils import platform, get_color_from_hex
 from kivy.clock import Clock
 from kivy.metrics import dp, sp
+from kivy.core.text import LabelBase
 import random
 
-from core.data_chinese import ChineseData
-from core.game_logic import GameLogic, GameType
-from picture_drawings import PictureCanvas
+# 配置中文字体
+def setup_font():
+    """配置中文字体"""
+    font_paths = []
+    if platform == 'android':
+        font_paths = [
+            "/system/fonts/NotoSansCJK-Regular.ttc",
+            "/system/fonts/DroidSansFallback.ttf",
+            "/system/fonts/NotoSansSC-Regular.otf",
+        ]
+    else:
+        font_paths = [
+            "C:/Windows/Fonts/msyh.ttc",
+            "C:/Windows/Fonts/simhei.ttf",
+        ]
+    
+    for path in font_paths:
+        if os.path.exists(path):
+            try:
+                LabelBase.register(name='Roboto', fn_regular=path)
+                print(f"已加载字体: {path}")
+                return True
+            except:
+                pass
+    return False
+
+setup_font()
+
+# 导入数据模块
+try:
+    from core.data_chinese import ChineseData
+    from core.game_logic import GameLogic, GameType
+except ImportError:
+    # 如果导入失败，使用内置数据
+    print("使用内置数据模块")
+
+# 导入绘图模块
+try:
+    from picture_drawings import PictureCanvas
+except ImportError:
+    # 如果导入失败，创建一个简单的替代类
+    class PictureCanvas(Widget):
+        def draw_char(self, char):
+            self.canvas.clear()
+            with self.canvas:
+                Color(0.9, 0.9, 0.9)
+                Rectangle(pos=self.pos, size=self.size)
 
 # 导入音频模块
 try:
@@ -767,7 +818,7 @@ class ChineseQuizScreen(Screen):
         praise = self.logic.get_praise_message(self.session.accuracy)
         star_text = '★' * stars + '☆' * (3 - stars)
         self.question_label.text = f'{star_text} 测验完成！'
-        self.display_label.text = '棒！'
+        self.play_btn.text = '棒！'
         self.feedback_label.text = f'{praise}\n正确率: {self.session.accuracy*100:.0f}%'
 
 

@@ -4,11 +4,12 @@ package.name = lelehanzi
 package.domain = com.lele
 
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas,json,ttc,ttf
-source.include_patterns = 汪汪队图片/*
+source.include_exts = py,png,jpg,jpeg,kv,atlas,json,ttc,ttf
+source.include_patterns = 汪汪队图片/*,core/*,ui_kivy/*
+source.exclude_patterns = backup_*,build,dist,__pycache__,.git,.github,*.pyc,*.pyo
 source.main = main.py
 
-version = 1.1.0
+version = 1.2.0
 
 requirements = python3,kivy,pyjnius
 

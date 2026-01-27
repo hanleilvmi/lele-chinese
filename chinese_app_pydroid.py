@@ -28,17 +28,63 @@ from kivy.metrics import dp, sp
 from kivy.core.text import LabelBase
 
 # ==================== 字体配置 ====================
-FONT_PATHS = [
-    '/system/fonts/NotoSansCJK-Regular.ttc',
-    '/system/fonts/DroidSansFallback.ttf',
-    '/system/fonts/NotoSansHans-Regular.otf',
-]
+import os
+import sys
+
+def get_font_paths():
+    """获取字体路径列表，根据平台返回不同路径"""
+    paths = []
+    
+    # Windows 字体路径
+    if sys.platform == 'win32':
+        win_fonts = os.path.join(os.environ.get('WINDIR', 'C:\\Windows'), 'Fonts')
+        paths.extend([
+            os.path.join(win_fonts, 'msyh.ttc'),      # 微软雅黑
+            os.path.join(win_fonts, 'msyhbd.ttc'),    # 微软雅黑粗体
+            os.path.join(win_fonts, 'simhei.ttf'),    # 黑体
+            os.path.join(win_fonts, 'simsun.ttc'),    # 宋体
+            'C:/Windows/Fonts/msyh.ttc',
+            'C:/Windows/Fonts/simhei.ttf',
+        ])
+    
+    # Android 字体路径
+    paths.extend([
+        '/system/fonts/NotoSansCJK-Regular.ttc',
+        '/system/fonts/DroidSansFallback.ttf',
+        '/system/fonts/NotoSansHans-Regular.otf',
+        '/system/fonts/NotoSansSC-Regular.otf',
+    ])
+    
+    # macOS 字体路径
+    paths.extend([
+        '/System/Library/Fonts/PingFang.ttc',
+        '/Library/Fonts/Arial Unicode.ttf',
+    ])
+    
+    # Linux 字体路径
+    paths.extend([
+        '/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf',
+        '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+    ])
+    
+    return paths
+
+FONT_PATHS = get_font_paths()
+FONT_LOADED = False
+
 for font_path in FONT_PATHS:
     try:
-        LabelBase.register(name='Roboto', fn_regular=font_path)
-        break
-    except:
+        if os.path.exists(font_path):
+            LabelBase.register(name='Roboto', fn_regular=font_path)
+            print(f"[字体] 成功加载: {font_path}")
+            FONT_LOADED = True
+            break
+    except Exception as e:
+        print(f"[字体] 加载失败 {font_path}: {e}")
         continue
+
+if not FONT_LOADED:
+    print("[字体] 警告: 未能加载中文字体，可能显示方块")
 
 # ==================== 汉字数据 ====================
 class ChineseData:
@@ -162,14 +208,15 @@ class GameLogic:
 
 # ==================== 语音模块 ====================
 audio = None
-ANDROID_TTS_AVAILABLE = False
+PLATFORM = 'desktop'
 
+# 尝试Android TTS
 try:
     from jnius import autoclass
     TTS = autoclass('android.speech.tts.TextToSpeech')
     Activity = autoclass('org.kivy.android.PythonActivity')
     Locale = autoclass('java.util.Locale')
-    ANDROID_TTS_AVAILABLE = True
+    PLATFORM = 'android'
     
     class AndroidTTS:
         def __init__(self):
@@ -192,8 +239,42 @@ try:
     audio = AndroidTTS()
     print("Android TTS 初始化成功")
 except Exception as e:
-    print(f"非Android平台或TTS不可用: {e}")
-    audio = None
+    print(f"非Android平台: {e}")
+    # Windows/桌面平台使用pyttsx3
+    try:
+        import pyttsx3
+        
+        class DesktopTTS:
+            def __init__(self):
+                try:
+                    self.engine = pyttsx3.init()
+                    # 设置中文语音
+                    voices = self.engine.getProperty('voices')
+                    for voice in voices:
+                        if 'chinese' in voice.name.lower() or 'zh' in voice.id.lower() or 'huihui' in voice.name.lower():
+                            self.engine.setProperty('voice', voice.id)
+                            break
+                    self.engine.setProperty('rate', 180)  # 语速
+                    self.ready = True
+                    print("pyttsx3 TTS 初始化成功")
+                except Exception as e:
+                    print(f"pyttsx3初始化失败: {e}")
+                    self.ready = False
+                    self.engine = None
+            
+            def speak(self, text):
+                if self.ready and self.engine:
+                    try:
+                        self.engine.say(text)
+                        self.engine.runAndWait()
+                    except Exception as e:
+                        print(f"TTS播放失败: {e}")
+        
+        audio = DesktopTTS()
+    except ImportError:
+        print("pyttsx3未安装，语音功能不可用")
+        print("请运行: pip install pyttsx3")
+        audio = None
 
 def speak(text):
     """安全的语音播放"""
@@ -365,7 +446,9 @@ class ChineseMenuScreen(Screen):
 class ChineseLearnScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.current_level = 1
+        self.current_level = 3  # 显示全部36个汉字
+        self.current_page = 0
+        self.cards_per_page = 12  # 每页12个汉字（3行x4列）
         self.build_ui()
     
     def build_ui(self):
@@ -376,32 +459,109 @@ class ChineseLearnScreen(Screen):
         layout.bind(pos=lambda i,v: setattr(self.bg, 'pos', v),
                    size=lambda i,v: setattr(self.bg, 'size', v))
         
+        # 导航栏
         nav = BoxLayout(size_hint=(1, 0.1))
-        back_btn = Button(text='< 返回', size_hint=(0.2, 1), font_size=get_font_size(18),
+        back_btn = Button(text='< 返回', size_hint=(0.15, 1), font_size=get_font_size(18),
                          background_color=get_color_from_hex('#FF7043'), background_normal='')
         back_btn.bind(on_press=lambda x: setattr(self.manager, 'current', 'menu'))
         nav.add_widget(back_btn)
-        nav.add_widget(Label(text='【学汉字】点击卡片学习', font_size=get_font_size(24),
-                            color=get_color_from_hex('#E65100'), bold=True, size_hint=(0.8, 1)))
+        nav.add_widget(Label(text='【学汉字】', font_size=get_font_size(28),
+                            color=get_color_from_hex('#E65100'), bold=True, size_hint=(0.5, 1)))
+        
+        # 难度选择
+        level_box = BoxLayout(size_hint=(0.35, 1), spacing=dp(5))
+        for lv, text in [(1, '初级'), (2, '中级'), (3, '高级')]:
+            btn = Button(text=text, font_size=get_font_size(14),
+                        background_color=get_color_from_hex('#4CAF50' if lv == self.current_level else '#BDBDBD'),
+                        background_normal='')
+            btn.level = lv
+            btn.bind(on_press=self.change_level)
+            level_box.add_widget(btn)
+        nav.add_widget(level_box)
         layout.add_widget(nav)
         
-        self.cards_grid = GridLayout(cols=4, spacing=dp(12), padding=dp(10), size_hint=(1, 0.8))
+        # 提示
+        self.hint = Label(text='点击汉字卡片学习！', font_size=get_font_size(20),
+                         color=get_color_from_hex('#666666'), size_hint=(1, 0.06))
+        layout.add_widget(self.hint)
+        
+        # 汉字卡片区域
+        self.cards_grid = GridLayout(cols=4, spacing=dp(12), padding=dp(10), size_hint=(1, 0.68))
         layout.add_widget(self.cards_grid)
+        
+        # 分页控制
+        page_box = BoxLayout(size_hint=(1, 0.1), spacing=dp(20), padding=[dp(50), 0])
+        
+        self.prev_btn = Button(text='< 上一页', font_size=get_font_size(18),
+                              background_color=get_color_from_hex('#42A5F5'), background_normal='',
+                              size_hint=(0.3, 1))
+        self.prev_btn.bind(on_press=self.prev_page)
+        page_box.add_widget(self.prev_btn)
+        
+        self.page_label = Label(text='第1页', font_size=get_font_size(18),
+                               color=get_color_from_hex('#666666'), size_hint=(0.4, 1))
+        page_box.add_widget(self.page_label)
+        
+        self.next_btn = Button(text='下一页 >', font_size=get_font_size(18),
+                              background_color=get_color_from_hex('#42A5F5'), background_normal='',
+                              size_hint=(0.3, 1))
+        self.next_btn.bind(on_press=self.next_page)
+        page_box.add_widget(self.next_btn)
+        
+        layout.add_widget(page_box)
         self.add_widget(layout)
+        self.load_cards()
+    
+    def change_level(self, instance):
+        self.current_level = instance.level
+        self.current_page = 0  # 切换等级时重置页码
+        # 更新按钮颜色
+        for btn in instance.parent.children:
+            if hasattr(btn, 'level'):
+                btn.background_color = get_color_from_hex('#4CAF50' if btn.level == self.current_level else '#BDBDBD')
         self.load_cards()
     
     def load_cards(self):
         self.cards_grid.clear_widgets()
-        words = ChineseData.get_words(level=self.current_level)
-        colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#DDA0DD', '#FFD93D']
+        all_words = ChineseData.get_words(level=self.current_level)
+        
+        # 计算分页
+        total_pages = max(1, (len(all_words) + self.cards_per_page - 1) // self.cards_per_page)
+        start_idx = self.current_page * self.cards_per_page
+        end_idx = min(start_idx + self.cards_per_page, len(all_words))
+        words = all_words[start_idx:end_idx]
+        
+        colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#DDA0DD', '#FFD93D',
+                  '#FF9800', '#8BC34A', '#E91E63', '#9C27B0', '#00BCD4', '#CDDC39']
         
         for i, (char, pinyin, word, emoji) in enumerate(words):
-            btn = Button(background_normal='', background_color=get_color_from_hex(colors[i % len(colors)]))
+            btn = Button(background_normal='', background_color=get_color_from_hex(colors[(start_idx + i) % len(colors)]))
             btn.markup = True
-            btn.text = f'[size={int(sp(42))}][b]{char}[/b][/size]\n[size={int(sp(14))}]{pinyin}[/size]\n[size={int(sp(12))}]{word}[/size]'
+            btn.text = f'[size={int(sp(42))}][b]{char}[/b][/size]\n[size={int(sp(16))}]{pinyin}[/size]\n[size={int(sp(12))}]{word}[/size]'
             btn.char_data = (char, pinyin, word)
             btn.bind(on_press=self.on_card_press)
             self.cards_grid.add_widget(btn)
+        
+        # 补齐空位（保持布局整齐）
+        for _ in range(self.cards_per_page - len(words)):
+            self.cards_grid.add_widget(Label(text=''))
+        
+        # 更新分页信息
+        self.page_label.text = f'第{self.current_page + 1}/{total_pages}页 (共{len(all_words)}字)'
+        self.prev_btn.disabled = self.current_page == 0
+        self.next_btn.disabled = self.current_page >= total_pages - 1
+    
+    def prev_page(self, instance):
+        if self.current_page > 0:
+            self.current_page -= 1
+            self.load_cards()
+    
+    def next_page(self, instance):
+        all_words = ChineseData.get_words(level=self.current_level)
+        total_pages = (len(all_words) + self.cards_per_page - 1) // self.cards_per_page
+        if self.current_page < total_pages - 1:
+            self.current_page += 1
+            self.load_cards()
     
     def on_card_press(self, instance):
         if hasattr(instance, 'char_data'):
@@ -432,7 +592,7 @@ class ChineseDetailScreen(Screen):
         back_btn.bind(on_press=lambda x: setattr(self.manager, 'current', 'learn'))
         nav.add_widget(back_btn)
         nav.add_widget(Label(text='点击可朗读', font_size=get_font_size(20),
-                            color=get_color_from_hex('#666'), size_hint=(0.8, 1)))
+                            color=get_color_from_hex('#666666'), size_hint=(0.8, 1)))
         layout.add_widget(nav)
         
         self.char_btn = Button(text='字', font_size=get_font_size(150),
@@ -443,7 +603,7 @@ class ChineseDetailScreen(Screen):
         layout.add_widget(self.char_btn)
         
         self.pinyin_label = Label(text='pīnyīn', font_size=get_font_size(32),
-                                  color=get_color_from_hex('#666'), size_hint=(1, 0.1))
+                                  color=get_color_from_hex('#666666'), size_hint=(1, 0.1))
         layout.add_widget(self.pinyin_label)
         
         self.word_btn = Button(text='词语', font_size=get_font_size(36),
@@ -547,7 +707,7 @@ class ChineseQuizScreen(Screen):
             self.show_result()
             return
         
-        words = ChineseData.get_words(level=2)
+        words = ChineseData.get_words(level=3)
         self.current_word = random.choice(words)
         char, pinyin, word, emoji = self.current_word
         
@@ -686,7 +846,7 @@ class ChinesePictureScreen(Screen):
             self.show_result()
             return
         
-        words = ChineseData.get_words(level=2)
+        words = ChineseData.get_words(level=3)
         self.current_word = random.choice(words)
         char, pinyin, word, emoji = self.current_word
         
@@ -805,7 +965,7 @@ class ChineseMatchScreen(Screen):
         self.start_btn.text = '重新开始'
         self.cards_layout.clear_widgets()
         
-        words = ChineseData.get_words(level=2)
+        words = ChineseData.get_words(level=3)
         # 只选择有明确图片的汉字
         picture_chars = ['日', '月', '山', '水', '火', '人', '口', '手', '花', '树', '鸟', '草']
         available = [w for w in words if w[0] in picture_chars]
@@ -1010,7 +1170,7 @@ class ChineseWhackScreen(Screen):
             hole.background_color = get_color_from_hex('#8B4513')
             self.hole_states[i] = None
         
-        words = ChineseData.get_words(level=2)
+        words = ChineseData.get_words(level=3)
         target_word = random.choice(words)
         self.target_char = target_word[0]
         self.target_label.text = f'快找 {self.target_char}！'
@@ -1201,7 +1361,7 @@ class ChineseChallengeScreen(Screen):
             self.level_failed()
             return
         
-        words = ChineseData.get_words(level=2)
+        words = ChineseData.get_words(level=3)
         self.current_word = random.choice(words)
         char, pinyin, word, emoji = self.current_word
         
