@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Buildozer
+.buildozer/
+bin/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Backup folders
+backup_*/
+
+# Temp files
+*.tmp
+*.bak
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
