@@ -3,11 +3,11 @@ name: Build Android APK
 on:
   push:
     branches: [ main, master ]
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     
     steps:
     - name: Checkout code
@@ -16,7 +16,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.10'
     
     - name: Install system dependencies
       run: |
@@ -39,23 +39,35 @@ jobs:
           autoconf \
           automake \
           libtool \
-          pkg-config
+          pkg-config \
+          cmake \
+          unzip \
+          zip
     
     - name: Install Python dependencies
       run: |
-        pip install --upgrade pip
-        pip install buildozer cython
+        pip install --upgrade pip setuptools wheel
+        pip install buildozer==1.5.0 cython==0.29.36
     
-    - name: Build APK
+    - name: Prepare main.py
       run: |
-        # 使用单文件版本编译
         cp chinese_app_pydroid.py main.py
-        buildozer android debug
+    
+    - name: Build APK with buildozer
+      run: |
+        yes | buildozer android debug 2>&1 | tail -500
       env:
         JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+      continue-on-error: false
+    
+    - name: List bin directory
+      if: always()
+      run: |
+        ls -la bin/ || echo "No bin directory"
     
     - name: Upload APK
       uses: actions/upload-artifact@v4
+      if: success()
       with:
         name: lele-chinese-apk
         path: bin/*.apk
