@@ -116,8 +116,25 @@ class KivyAudio(AudioInterface):
         """延迟初始化Android TTS"""
         try:
             if Activity.mActivity is not None:
+                # 创建TTS实例
                 self.tts = TTS(Activity.mActivity, None)
-                self.tts.setLanguage(Locale.CHINESE)
+                
+                # 尝试设置中文语言
+                try:
+                    # 尝试简体中文
+                    result = self.tts.setLanguage(Locale.SIMPLIFIED_CHINESE)
+                    if result < 0:
+                        # 如果失败，尝试CHINESE
+                        result = self.tts.setLanguage(Locale.CHINESE)
+                    if result < 0:
+                        # 如果还失败，尝试用字符串创建Locale
+                        zh_locale = Locale("zh", "CN")
+                        self.tts.setLanguage(zh_locale)
+                except Exception as e:
+                    print(f"设置TTS语言失败: {e}")
+                    # 使用默认语言
+                    pass
+                
                 self.tts_ready = True
                 print("Android TTS 初始化成功")
             else:
@@ -126,12 +143,32 @@ class KivyAudio(AudioInterface):
                 Clock.schedule_once(self._init_android_tts, 1.0)
         except Exception as e:
             print(f"Android TTS 初始化失败: {e}")
-            self.tts_ready = False
+            # 重试几次
+            if not hasattr(self, '_tts_retry_count'):
+                self._tts_retry_count = 0
+            self._tts_retry_count += 1
+            if self._tts_retry_count < 5:
+                from kivy.clock import Clock
+                Clock.schedule_once(self._init_android_tts, 2.0)
+            else:
+                self.tts_ready = False
     
     def speak(self, text: str, rate: str = "+0%"):
         """朗读文字（异步）"""
         if not self.tts_ready:
+            print(f"TTS未就绪，无法播放: {text}")
             return
+        
+        # Android/鸿蒙：直接在主线程调用TTS
+        if self.platform == 'android' and ANDROID_TTS and self.tts:
+            try:
+                # 使用Clock确保在主线程执行
+                from kivy.clock import Clock
+                Clock.schedule_once(lambda dt: self._android_speak(text), 0)
+                return
+            except Exception as e:
+                print(f"Android TTS调度失败: {e}")
+                return
         
         # 停止当前播放
         if self.current_sound:
@@ -144,9 +181,18 @@ class KivyAudio(AudioInterface):
         self.speech_id += 1
         current_id = self.speech_id
         
-        # 在后台线程生成语音
+        # 在后台线程生成语音（桌面平台）
         t = threading.Thread(target=self._speak_thread, args=(text, rate, current_id), daemon=True)
         t.start()
+    
+    def _android_speak(self, text):
+        """Android TTS播放（主线程）"""
+        try:
+            if self.tts and self.tts_ready:
+                self.tts.speak(text, TTS.QUEUE_FLUSH, None, None)
+                print(f"Android TTS播放: {text}")
+        except Exception as e:
+            print(f"Android TTS播放失败: {e}")
     
     def _speak_thread(self, text: str, rate: str, speech_id: int):
         """语音生成和播放线程"""
