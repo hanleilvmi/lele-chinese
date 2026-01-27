@@ -11,6 +11,9 @@ source.main = main.py
 
 version = 1.2.0
 
+# 应用图标 (莱德)
+icon.filename = icon.png
+
 requirements = python3,kivy,pyjnius
 
 android.permissions = INTERNET

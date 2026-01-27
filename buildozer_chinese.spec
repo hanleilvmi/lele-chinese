@@ -29,6 +29,9 @@ source.exclude_patterns = *_test.py,test_*.py,kids_*.py,preview_*.py,pack_*.py,b
 # 应用版本
 version = 1.0.0
 
+# 应用图标 (莱德)
+icon.filename = icon.png
+
 # 依赖
 requirements = python3,kivy,android,pyjnius
 
