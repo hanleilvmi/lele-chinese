@@ -163,26 +163,32 @@ class ChildFriendlyButton(Button):
 # 动画效果辅助函数
 # ============================================================
 def animate_correct(widget):
-    """答对动画 - 放大弹跳 + 变绿"""
-    widget.background_color = get_color_from_hex('#4CAF50')
-    anim = Animation(scale=1.2, duration=0.15) + Animation(scale=1.0, duration=0.15, t='out_bounce')
-    anim.start(widget)
+    """答对动画 - 变绿 + 透明度闪烁"""
+    try:
+        widget.background_color = get_color_from_hex('#4CAF50')
+        # 使用opacity代替scale（Button没有scale属性）
+        anim = Animation(opacity=0.7, duration=0.1) + Animation(opacity=1.0, duration=0.1)
+        anim.start(widget)
+    except Exception as e:
+        print(f"[animate_correct] 错误: {e}")
 
 def animate_wrong(widget):
-    """答错动画 - 左右摇晃 + 变红"""
-    widget.background_color = get_color_from_hex('#F44336')
-    # 摇晃效果
-    original_x = widget.x
-    anim = (Animation(x=original_x - dp(10), duration=0.05) + 
-            Animation(x=original_x + dp(10), duration=0.1) + 
-            Animation(x=original_x - dp(10), duration=0.1) + 
-            Animation(x=original_x, duration=0.05))
-    anim.start(widget)
+    """答错动画 - 变红 + 透明度闪烁"""
+    try:
+        widget.background_color = get_color_from_hex('#F44336')
+        # 简单的透明度闪烁
+        anim = Animation(opacity=0.5, duration=0.1) + Animation(opacity=1.0, duration=0.1)
+        anim.start(widget)
+    except Exception as e:
+        print(f"[animate_wrong] 错误: {e}")
 
 def animate_bounce(widget):
-    """弹跳动画"""
-    anim = Animation(scale=1.15, duration=0.1) + Animation(scale=1.0, duration=0.1, t='out_bounce')
-    anim.start(widget)
+    """弹跳动画 - 透明度闪烁"""
+    try:
+        anim = Animation(opacity=0.8, duration=0.1) + Animation(opacity=1.0, duration=0.1)
+        anim.start(widget)
+    except Exception as e:
+        print(f"[animate_bounce] 错误: {e}")
 
 def animate_pulse(widget, color1='#FF6B6B', color2='#FFD93D'):
     """脉冲闪烁动画"""
