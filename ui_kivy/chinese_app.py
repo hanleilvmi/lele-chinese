@@ -2,7 +2,7 @@
 """
 乐乐的识字乐园 - Android/鸿蒙平板优化版
 专为3-5岁儿童设计的汉字学习应用
-v1.5.0 - 汪汪队主题风格统一，每个模块对应一只狗狗
+v1.5.1 - 配对游戏改为图片配汉字模式
 """
 import sys
 import os
@@ -1313,16 +1313,19 @@ class ChineseQuizScreen(Screen):
 
 
 class ChineseMatchScreen(Screen):
-    """汉字配对游戏 - 路马主题（橙色水上救援犬）"""
+    """汉字配对游戏 - 路马主题（图片配汉字）"""
+    
+    # 可配对的汉字及其图片类型
+    MATCH_CHARS = ['日', '月', '山', '水', '火', '花', '树', '鸟', '草', '人', '手', '口']
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.logic = GameLogic()
         self.cards = []
-        self.card_data = []
+        self.card_widgets = []  # 存储卡片Widget
         self.selected = None
         self.matched = set()
         self.score = 0
+        self.game_started = False
         self.build_ui()
     
     def build_ui(self):
@@ -1407,123 +1410,224 @@ class ChineseMatchScreen(Screen):
     
     def start_game(self, instance):
         self.cards = []
-        self.card_data = []
+        self.card_widgets = []
         self.selected = None
         self.matched = set()
         self.score = 0
+        self.game_started = True
         self.score_label.text = '得分: 0'
         self.feedback_label.text = ''
         self.start_btn.text = '重新开始'
         
         self.cards_layout.clear_widgets()
         
-        # 选择有明确图片的汉字
-        words = ChineseData.get_words(level=2)
-        picture_chars = ['日', '月', '山', '水', '火', '人', '口', '手', '花', '树', '鸟', '草']
-        available = [w for w in words if w[0] in picture_chars]
-        selected = random.sample(available, min(6, len(available)))
+        # 随机选择6个汉字进行配对
+        selected_chars = random.sample(self.MATCH_CHARS, 6)
         
-        # 汉字对应的图片描述（用中文代替emoji）
-        char_pics = {
-            '日': '太阳', '月': '月亮', '山': '高山', '水': '水滴', '火': '火焰',
-            '人': '小人', '口': '嘴巴', '手': '小手', '足': '脚丫', '花': '鲜花',
-            '树': '大树', '鸟': '小鸟', '草': '小草', '石': '石头', '田': '田地',
-            '大': '大的', '小': '小的', '天': '天空', '地': '大地'
-        }
+        # 创建配对数据：每个汉字有一张图片卡和一张文字卡
+        card_data = []
+        for char in selected_chars:
+            card_data.append({'type': 'picture', 'char': char})
+            card_data.append({'type': 'text', 'char': char})
         
-        # 创建配对数据：汉字 + 图片描述
-        for char, pinyin, word, emoji in selected:
-            self.card_data.append({'type': 'char', 'value': char, 'match_id': char})
-            pic = char_pics.get(char, '?')
-            self.card_data.append({'type': 'picture', 'value': pic, 'match_id': char})
+        random.shuffle(card_data)
+        self.cards = card_data
         
-        random.shuffle(self.card_data)
+        # 创建卡片Widget
+        colors = ['#FFE0B2', '#C8E6C9', '#BBDEFB', '#F8BBD9', '#FFF9C4', '#D1C4E9',
+                  '#B2EBF2', '#FFCCBC', '#E1BEE7', '#C5CAE9', '#DCEDC8', '#FFE082']
         
-        colors = ['#FFB6C1', '#98FB98', '#87CEEB', '#DDA0DD', '#F0E68C', '#FFA07A',
-                  '#B0E0E6', '#FFE4B5', '#E6E6FA', '#FFDAB9', '#D8BFD8', '#F5DEB3']
-        
-        for i in range(12):
-            card = self.card_data[i]
-            btn = Button(
-                text='?',
-                font_size=get_font_size(36),
-                background_color=get_color_from_hex(colors[i]),
-                background_normal=''
+        for i, card in enumerate(card_data):
+            # 创建卡片容器
+            card_widget = MatchCard(
+                card_type=card['type'],
+                char=card['char'],
+                bg_color=colors[i % len(colors)]
             )
-            btn.card_index = i
-            btn.card_value = card['value']
-            btn.card_type = card['type']
-            btn.original_color = get_color_from_hex(colors[i])
-            btn.bind(on_press=self.on_card_press)
-            self.cards_layout.add_widget(btn)
-            self.cards.append(btn)
+            card_widget.card_index = i
+            card_widget.bind(on_press=self.on_card_press)
+            self.cards_layout.add_widget(card_widget)
+            self.card_widgets.append(card_widget)
         
         # 先显示所有卡片3秒
         self.show_all_cards()
+        self.hint_label.text = '记住位置！3秒后翻回去...'
         Clock.schedule_once(lambda dt: self.hide_all_cards(), 3.0)
     
     def show_all_cards(self):
-        for i, btn in enumerate(self.cards):
-            btn.text = self.card_data[i]['value']
-        self.hint_label.text = '记住位置！3秒后翻回去...'
+        for widget in self.card_widgets:
+            widget.show_content()
     
     def hide_all_cards(self):
-        for i, btn in enumerate(self.cards):
+        for i, widget in enumerate(self.card_widgets):
             if i not in self.matched:
-                btn.text = '?'
-        self.hint_label.text = '点击卡片找配对！'
+                widget.hide_content()
+        self.hint_label.text = '路马说：找到图片和汉字配对！'
     
     def on_card_press(self, instance):
+        if not self.game_started:
+            return
+        
         idx = instance.card_index
         if idx in self.matched:
             return
         
-        instance.text = self.card_data[idx]['value']
+        # 显示卡片内容
+        instance.show_content()
+        instance.highlight(True)
         
         if self.selected is None:
             self.selected = idx
-            instance.background_color = get_color_from_hex('#FFEB3B')
         else:
             first_idx = self.selected
-            first_btn = self.cards[first_idx]
-            first_data = self.card_data[first_idx]
-            second_data = self.card_data[idx]
+            first_widget = self.card_widgets[first_idx]
+            first_card = self.cards[first_idx]
+            second_card = self.cards[idx]
             
-            if (first_data['match_id'] == second_data['match_id'] and 
-                first_data['type'] != second_data['type'] and first_idx != idx):
+            # 检查是否配对成功（同一个汉字，但类型不同）
+            if (first_card['char'] == second_card['char'] and 
+                first_card['type'] != second_card['type']):
                 # 配对成功
                 self.score += 20
                 self.score_label.text = f'得分: {self.score}'
                 self.matched.add(first_idx)
                 self.matched.add(idx)
-                first_btn.background_color = get_color_from_hex('#4CAF50')
-                instance.background_color = get_color_from_hex('#4CAF50')
-                self.feedback_label.text = f'太棒了！{first_data["match_id"]} 配对成功！'
+                first_widget.mark_matched()
+                instance.mark_matched()
+                self.feedback_label.text = f'太棒了！"{first_card["char"]}" 配对成功！'
                 self.feedback_label.color = get_color_from_hex('#4CAF50')
-                play_praise()  # 播放表扬
+                speak(first_card['char'])
+                play_praise()
                 
                 if len(self.matched) == 12:
                     Clock.schedule_once(lambda dt: self.show_complete(), 1.0)
             else:
-                self.feedback_label.text = '不是配对，再试试！'
+                # 配对失败
+                self.feedback_label.text = '不是一对，再试试！'
                 self.feedback_label.color = get_color_from_hex('#FF9800')
-                play_encourage()  # 播放鼓励
-                Clock.schedule_once(lambda dt: self.flip_back(first_idx, idx), 1.0)
+                play_encourage()
+                Clock.schedule_once(lambda dt: self.flip_back(first_idx, idx), 1.2)
             
             self.selected = None
     
     def flip_back(self, idx1, idx2):
         if idx1 not in self.matched:
-            self.cards[idx1].text = '?'
-            self.cards[idx1].background_color = self.cards[idx1].original_color
+            self.card_widgets[idx1].hide_content()
+            self.card_widgets[idx1].highlight(False)
         if idx2 not in self.matched:
-            self.cards[idx2].text = '?'
-            self.cards[idx2].background_color = self.cards[idx2].original_color
+            self.card_widgets[idx2].hide_content()
+            self.card_widgets[idx2].highlight(False)
     
     def show_complete(self):
-        self.hint_label.text = '★★★ 太厉害了！全部配对成功！★★★'
+        self.hint_label.text = '太厉害了！全部配对成功！'
         self.feedback_label.text = f'总得分: {self.score}'
         self.feedback_label.color = get_color_from_hex('#FF6B6B')
+        self.game_started = False
+
+
+class MatchCard(BoxLayout):
+    """配对游戏卡片 - 可显示图片或汉字"""
+    
+    def __init__(self, card_type='text', char='日', bg_color='#FFE0B2', **kwargs):
+        super().__init__(**kwargs)
+        self.card_type = card_type  # 'picture' 或 'text'
+        self.char = char
+        self.bg_color = bg_color
+        self.is_showing = False
+        self.is_matched = False
+        
+        # 设置背景
+        with self.canvas.before:
+            Color(*get_color_from_hex(bg_color))
+            self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[dp(10)])
+        self.bind(pos=self._update_bg, size=self._update_bg)
+        
+        # 问号标签（隐藏状态）
+        self.question_label = Label(
+            text='?',
+            font_size=sp(48),
+            color=get_color_from_hex('#666666'),
+            bold=True
+        )
+        self.add_widget(self.question_label)
+        
+        # 内容区域（图片或文字）
+        self.content_widget = None
+        
+        # 注册点击事件
+        self.register_event_type('on_press')
+    
+    def _update_bg(self, *args):
+        self.bg_rect.pos = self.pos
+        self.bg_rect.size = self.size
+    
+    def on_touch_down(self, touch):
+        if self.collide_point(*touch.pos):
+            self.dispatch('on_press')
+            return True
+        return super().on_touch_down(touch)
+    
+    def on_press(self):
+        pass
+    
+    def show_content(self):
+        """显示卡片内容"""
+        if self.is_showing:
+            return
+        self.is_showing = True
+        
+        # 隐藏问号
+        self.question_label.opacity = 0
+        
+        # 创建内容
+        if self.content_widget:
+            self.remove_widget(self.content_widget)
+        
+        if self.card_type == 'picture':
+            # 显示图片
+            self.content_widget = PictureCanvas()
+            self.content_widget.draw_char(self.char)
+        else:
+            # 显示汉字
+            self.content_widget = Label(
+                text=self.char,
+                font_size=sp(56),
+                color=get_color_from_hex('#333333'),
+                bold=True
+            )
+        
+        self.add_widget(self.content_widget)
+    
+    def hide_content(self):
+        """隐藏卡片内容"""
+        if not self.is_showing or self.is_matched:
+            return
+        self.is_showing = False
+        
+        # 显示问号
+        self.question_label.opacity = 1
+        
+        # 移除内容
+        if self.content_widget:
+            self.remove_widget(self.content_widget)
+            self.content_widget = None
+    
+    def highlight(self, on=True):
+        """高亮显示"""
+        with self.canvas.before:
+            self.canvas.before.clear()
+            if on and not self.is_matched:
+                Color(*get_color_from_hex('#FFEB3B'))
+            elif self.is_matched:
+                Color(*get_color_from_hex('#81C784'))
+            else:
+                Color(*get_color_from_hex(self.bg_color))
+            self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[dp(10)])
+    
+    def mark_matched(self):
+        """标记为已配对"""
+        self.is_matched = True
+        self.highlight(False)
 
 
 class ChineseWhackScreen(Screen):
