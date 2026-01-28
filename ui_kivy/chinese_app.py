@@ -625,28 +625,21 @@ class ChineseMenuScreen(Screen):
         pass
     
     def start_entrance_animation(self, dt):
-        """入场动画 - 按钮依次弹出"""
+        """入场动画 - 按钮依次淡入"""
         for i, btn in enumerate(self.game_buttons):
             btn.opacity = 0
-            btn.scale = 0.5
-            # 延迟动画，产生波浪效果
-            anim = Animation(opacity=1, duration=0.3)
-            anim &= Animation(scale=1, duration=0.3, t='out_back')
+            # 延迟动画，产生波浪效果（只用opacity，不用scale）
+            anim = Animation(opacity=1, duration=0.3, t='out_quad')
             Clock.schedule_once(lambda dt, b=btn, a=anim: a.start(b), i * 0.08)
     
     def on_button_press(self, instance):
         """按钮按下动画"""
-        # 缩小效果
-        anim = Animation(scale=0.9, duration=0.1)
-        anim.start(instance)
-        # 变暗
-        instance.opacity = 0.8
+        # 变暗效果
+        instance.opacity = 0.7
     
     def on_button_release(self, instance):
         """按钮释放动画"""
-        # 恢复大小
-        anim = Animation(scale=1, duration=0.1, t='out_back')
-        anim.start(instance)
+        # 恢复
         instance.opacity = 1
         # 跳转页面
         if hasattr(instance, 'target_screen'):
