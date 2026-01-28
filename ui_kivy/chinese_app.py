@@ -1324,8 +1324,15 @@ class ChineseQuizScreen(Screen):
 class ChineseMatchScreen(Screen):
     """汉字配对游戏 - 路马主题（图片配汉字）"""
     
-    # 可配对的汉字及其图片类型
-    MATCH_CHARS = ['日', '月', '山', '水', '火', '花', '树', '鸟', '草', '人', '手', '口']
+    # 可配对的汉字及其图片类型（扩展到全部36个汉字）
+    # 分组便于选择不同难度
+    MATCH_CHARS_EASY = ['日', '月', '山', '水', '火', '人', '口', '手']  # 简单：自然+身体
+    MATCH_CHARS_MEDIUM = ['花', '树', '鸟', '草', '天', '地', '大', '小', '上', '下']  # 中等：自然+方位
+    MATCH_CHARS_HARD = ['爸', '妈', '爷', '奶', '哥', '姐', '弟', '妹']  # 较难：家人
+    MATCH_CHARS_EXPERT = ['吃', '喝', '看', '听', '左', '右', '足', '石', '田', '土']  # 专家：动作+其他
+    
+    # 全部可用汉字
+    MATCH_CHARS = MATCH_CHARS_EASY + MATCH_CHARS_MEDIUM + MATCH_CHARS_HARD + MATCH_CHARS_EXPERT
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -1335,6 +1342,7 @@ class ChineseMatchScreen(Screen):
         self.matched = set()
         self.score = 0
         self.game_started = False
+        self.difficulty = 'easy'  # 难度：easy, medium, hard, expert, mixed
         self.build_ui()
     
     def build_ui(self):
@@ -1400,9 +1408,34 @@ class ChineseMatchScreen(Screen):
             cols=4,
             spacing=dp(12),
             padding=dp(15),
-            size_hint=(1, 0.54)
+            size_hint=(1, 0.46)
         )
         layout.add_widget(self.cards_layout)
+        
+        # 难度选择按钮
+        diff_layout = BoxLayout(size_hint=(1, 0.08), spacing=dp(8), padding=[dp(10), 0])
+        diff_label = Label(text='难度:', font_size=get_font_size(16), size_hint=(0.1, 1), color=get_color_from_hex('#666'))
+        diff_layout.add_widget(diff_label)
+        
+        difficulties = [
+            ('简单', 'easy', '#4CAF50'),
+            ('中等', 'medium', '#FF9800'),
+            ('较难', 'hard', '#F44336'),
+            ('专家', 'expert', '#9C27B0'),
+            ('混合', 'mixed', '#2196F3'),
+        ]
+        for name, diff, color in difficulties:
+            btn = Button(
+                text=name,
+                font_size=get_font_size(14),
+                background_color=get_color_from_hex(color),
+                background_normal='',
+                size_hint=(0.18, 1)
+            )
+            btn.difficulty = diff
+            btn.bind(on_press=self.set_difficulty)
+            diff_layout.add_widget(btn)
+        layout.add_widget(diff_layout)
         
         # 开始按钮
         self.start_btn = Button(
@@ -1417,6 +1450,12 @@ class ChineseMatchScreen(Screen):
         
         self.add_widget(layout)
     
+    def set_difficulty(self, instance):
+        """设置难度"""
+        self.difficulty = instance.difficulty
+        diff_names = {'easy': '简单', 'medium': '中等', 'hard': '较难', 'expert': '专家', 'mixed': '混合'}
+        self.hint_label.text = f'路马说：{diff_names[self.difficulty]}模式，找配对！'
+    
     def start_game(self, instance):
         self.cards = []
         self.card_widgets = []
@@ -1430,8 +1469,21 @@ class ChineseMatchScreen(Screen):
         
         self.cards_layout.clear_widgets()
         
+        # 根据难度选择汉字池
+        if self.difficulty == 'easy':
+            char_pool = self.MATCH_CHARS_EASY
+        elif self.difficulty == 'medium':
+            char_pool = self.MATCH_CHARS_MEDIUM
+        elif self.difficulty == 'hard':
+            char_pool = self.MATCH_CHARS_HARD
+        elif self.difficulty == 'expert':
+            char_pool = self.MATCH_CHARS_EXPERT
+        else:  # mixed - 从所有汉字中随机选
+            char_pool = self.MATCH_CHARS
+        
         # 随机选择6个汉字进行配对
-        selected_chars = random.sample(self.MATCH_CHARS, 6)
+        num_pairs = min(6, len(char_pool))
+        selected_chars = random.sample(char_pool, num_pairs)
         
         # 创建配对数据：每个汉字有一张图片卡和一张文字卡
         card_data = []
@@ -2120,7 +2172,7 @@ class ChinesePictureScreen(Screen):
 class ChineseChallengeScreen(Screen):
     """闯关模式 - 小克主题（绿色丛林犬），解锁汪汪队狗狗"""
     
-    # 每关解锁的狗狗
+    # 每关解锁的狗狗（扩展到15关）
     LEVEL_PUPPIES = {
         1: ('阿奇', '警犬阿奇加入你的队伍！'),
         2: ('毛毛', '消防犬毛毛来帮忙啦！'),
@@ -2132,6 +2184,36 @@ class ChineseChallengeScreen(Screen):
         8: ('小克', '丛林犬小克出动！'),
         9: ('莱德', '队长莱德为你骄傲！'),
         10: ('多个狗狗', '汪汪队全员集合！'),
+        # 第二轮解锁 - 狗狗升级版
+        11: ('阿奇', '超级警犬阿奇升级！'),
+        12: ('毛毛', '超级消防犬毛毛升级！'),
+        13: ('天天', '超级飞行犬天天升级！'),
+        14: ('小砾', '超级工程犬小砾升级！'),
+        15: ('多个狗狗', '汪汪队超级全员出动！'),
+    }
+    
+    # 关卡难度配置
+    LEVEL_CONFIG = {
+        # 1-3关：简单 - 看词选字
+        1: {'mode': 'word_to_char', 'options': 3, 'time': None},
+        2: {'mode': 'word_to_char', 'options': 3, 'time': None},
+        3: {'mode': 'word_to_char', 'options': 4, 'time': None},
+        # 4-6关：中等 - 听音选字
+        4: {'mode': 'listen', 'options': 4, 'time': None},
+        5: {'mode': 'listen', 'options': 4, 'time': None},
+        6: {'mode': 'listen', 'options': 4, 'time': None},
+        # 7-9关：较难 - 看图选字
+        7: {'mode': 'picture', 'options': 4, 'time': None},
+        8: {'mode': 'picture', 'options': 4, 'time': None},
+        9: {'mode': 'picture', 'options': 4, 'time': None},
+        # 10-12关：困难 - 混合模式
+        10: {'mode': 'mixed', 'options': 4, 'time': None},
+        11: {'mode': 'mixed', 'options': 4, 'time': None},
+        12: {'mode': 'mixed', 'options': 5, 'time': None},
+        # 13-15关：挑战 - 限时模式
+        13: {'mode': 'mixed', 'options': 5, 'time': 8},
+        14: {'mode': 'mixed', 'options': 5, 'time': 6},
+        15: {'mode': 'mixed', 'options': 6, 'time': 5},
     }
     
     def __init__(self, **kwargs):
@@ -2304,9 +2386,18 @@ class ChineseChallengeScreen(Screen):
         self.current_word = random.choice(words)
         char, pinyin, word, emoji = self.current_word
         
-        # 根据关卡调整难度
-        if self.current_level <= 3:
-            # 前3关：显示词语，选汉字（词语必须包含目标字）
+        # 获取关卡配置
+        level_cfg = self.LEVEL_CONFIG.get(self.current_level, {'mode': 'mixed', 'options': 4, 'time': None})
+        mode = level_cfg['mode']
+        num_options = level_cfg['options']
+        
+        # 混合模式随机选择
+        if mode == 'mixed':
+            mode = random.choice(['word_to_char', 'listen', 'picture'])
+        
+        # 根据模式设置题目
+        if mode == 'word_to_char':
+            # 看词选字
             word_hints = {
                 '人': '人们', '口': '门口', '手': '小手', '足': '足球',
                 '日': '日出', '月': '月亮', '水': '喝水', '火': '火车',
@@ -2319,28 +2410,37 @@ class ChineseChallengeScreen(Screen):
                 '看': '看书', '听': '听歌', '左': '左边', '右': '右边',
             }
             hint_word = word_hints.get(char, word)
-            # 确保提示词包含目标字
             if char not in hint_word:
-                hint_word = word  # 用默认词组
+                hint_word = word
             self.char_label.text = hint_word
             self.question_label.text = '找出里面的字！'
-        else:
-            # 4关以后：听声音选字
+        elif mode == 'listen':
+            # 听音选字
             self.char_label.text = '听'
             self.question_label.text = '听声音，选汉字！'
             Clock.schedule_once(lambda dt: speak(char), 0.3)
+        elif mode == 'picture':
+            # 看图选字
+            self.char_label.text = emoji if emoji else '图'
+            self.question_label.text = '看图片，选汉字！'
         
         # 生成汉字选项
         self.answers_layout.clear_widgets()
         all_chars = [w[0] for w in words]
-        options = self.logic.get_random_options(char, all_chars, count=4)
+        options = self.logic.get_random_options(char, all_chars, count=num_options)
         
-        colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4']
+        # 根据选项数量调整列数
+        if num_options <= 4:
+            self.answers_layout.cols = num_options
+        else:
+            self.answers_layout.cols = 3
+        
+        colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFD93D', '#E91E63']
         for i, opt in enumerate(options):
             btn = Button(
                 text=opt,
-                font_size=get_font_size(52),
-                background_color=get_color_from_hex(colors[i]),
+                font_size=get_font_size(48 if num_options > 4 else 52),
+                background_color=get_color_from_hex(colors[i % len(colors)]),
                 background_normal='',
                 bold=True
             )
@@ -2348,6 +2448,19 @@ class ChineseChallengeScreen(Screen):
             self.answers_layout.add_widget(btn)
         
         self.progress_label.text = f'{self.level_progress + 1}/5'
+        
+        # 限时模式提示
+        time_limit = level_cfg.get('time')
+        if time_limit:
+            self.hint_label.text = f'小克说：限时{time_limit}秒！快快快！'
+        elif self.current_level <= 3:
+            self.hint_label.text = '小克说：每关答对3题过关！'
+        elif self.current_level <= 6:
+            self.hint_label.text = '小克说：听声音选汉字！'
+        elif self.current_level <= 9:
+            self.hint_label.text = '小克说：看图片选汉字！'
+        else:
+            self.hint_label.text = '小克说：混合挑战，加油！'
     
     def on_answer(self, instance):
         if self.current_word is None:
@@ -2486,7 +2599,7 @@ class ChineseChallengeScreen(Screen):
         self.level_progress = 0
         self.level_correct = 0
         
-        if self.current_level > 10:
+        if self.current_level > 15:
             # 通关了！
             Clock.schedule_once(lambda dt: self.game_complete(), 0.5)
         else:
