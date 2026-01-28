@@ -390,6 +390,16 @@ def play_encourage():
     if audio:
         audio.play_encourage()
 
+def play_short_praise():
+    """播放简短表扬（用于打地鼠等快节奏游戏）"""
+    if audio:
+        audio.play_short_praise()
+
+def play_short_encourage():
+    """播放简短鼓励（用于打地鼠等快节奏游戏）"""
+    if audio:
+        audio.play_short_encourage()
+
 
 def get_font_size(base_size):
     """根据屏幕大小动态计算字体大小"""
@@ -1860,7 +1870,7 @@ class ChineseWhackScreen(Screen):
             self.feedback_label.color = get_color_from_hex('#4CAF50')
             instance.background_color = get_color_from_hex('#4CAF50')
             instance.text = '棒!'
-            play_praise()  # 播放表扬
+            play_short_praise()  # 播放简短表扬，不影响游戏节奏
         else:
             # 打错了
             self.session.add_wrong()
@@ -1868,7 +1878,7 @@ class ChineseWhackScreen(Screen):
             self.feedback_label.color = get_color_from_hex('#F44336')
             instance.background_color = get_color_from_hex('#F44336')
             instance.text = 'X'
-            play_encourage()  # 播放鼓励
+            play_short_encourage()  # 播放简短鼓励
         
         self.hole_states[idx] = None
         Clock.schedule_once(lambda dt: self.spawn_moles(), 1.0)
@@ -3224,12 +3234,23 @@ class ChineseStoryScreen(Screen):
         content.add_widget(right_box)
         layout.add_widget(content)
         
-        char_box = BoxLayout(size_hint=(1, 0.13), spacing=dp(8), padding=dp(5))
+        # 底部汉字选择 - 使用ScrollView横向滚动
+        char_scroll = ScrollView(size_hint=(1, 0.13), do_scroll_x=True, do_scroll_y=False)
+        char_box = BoxLayout(size_hint=(None, 1), spacing=dp(8), padding=dp(5))
+        char_box.bind(minimum_width=char_box.setter('width'))
         for char in self.char_list:
-            btn = Button(text=char, font_size=get_font_size(28), background_color=get_color_from_hex('#81C784'), background_normal='')
+            btn = Button(
+                text=char, 
+                font_size=get_font_size(28), 
+                background_color=get_color_from_hex('#81C784'), 
+                background_normal='',
+                size_hint=(None, 1),
+                width=dp(60)  # 固定宽度
+            )
             btn.bind(on_press=self.select_char)
             char_box.add_widget(btn)
-        layout.add_widget(char_box)
+        char_scroll.add_widget(char_box)
+        layout.add_widget(char_scroll)
         self.add_widget(layout)
         self.show_story('人')
     

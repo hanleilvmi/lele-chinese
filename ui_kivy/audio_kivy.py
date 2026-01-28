@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Kivy 音频模块 v2.1
+Kivy 音频模块 v2.2
 支持 Windows / Android / 鸿蒙 平台
-修复：Android TTS初始化和播放问题
+新增：优先播放预生成的本地音频文件，让平板也能使用汪汪队风格语音
 """
 import os
 import sys
@@ -21,6 +21,25 @@ os.environ['no_proxy'] = '*'
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.audio_interface import AudioInterface
+
+# ============================================================
+# 本地音频文件路径
+# ============================================================
+def get_audio_dir():
+    """获取音频文件目录"""
+    # 尝试多个可能的路径
+    possible_paths = [
+        os.path.join(os.path.dirname(__file__), '..', 'audio', 'generated'),
+        os.path.join(os.path.dirname(__file__), 'audio', 'generated'),
+        '/data/data/com.lele.lelehanzi/files/app/audio/generated',  # Android路径
+        'audio/generated',
+    ]
+    for path in possible_paths:
+        if os.path.exists(path):
+            return os.path.abspath(path)
+    return possible_paths[0]  # 返回默认路径
+
+AUDIO_DIR = None  # 延迟初始化
 
 # ============================================================
 # 平台检测
@@ -76,10 +95,112 @@ def get_praises():
 def get_encourages():
     return ['再试一次！', '没关系！', '加油！', '你可以的！', '继续努力！']
 
+# 预生成的表扬语数量
+NUM_PRAISES = 33
+NUM_ENCOURAGES = 16
+
+# 简短表扬语（用于打地鼠等快节奏游戏）
+SHORT_PRAISES = ['真棒！', '好！', '对了！', '厉害！', '棒！', '耶！']
+SHORT_ENCOURAGES = ['再试！', '加油！', '没事！']
+NUM_SHORT_PRAISES = len(SHORT_PRAISES)
+NUM_SHORT_ENCOURAGES = len(SHORT_ENCOURAGES)
+
 try:
     from voice_config_shared import get_voice, get_praises, get_encourages
 except ImportError:
     pass
+
+
+# ============================================================
+# 本地音频文件查找
+# ============================================================
+def _init_audio_dir():
+    """初始化音频目录"""
+    global AUDIO_DIR
+    if AUDIO_DIR is None:
+        AUDIO_DIR = get_audio_dir()
+        print(f"[audio] 音频目录: {AUDIO_DIR}")
+    return AUDIO_DIR
+
+def find_local_audio(text):
+    """查找本地预生成的音频文件
+    
+    Args:
+        text: 要播放的文字
+        
+    Returns:
+        音频文件路径，如果不存在返回None
+    """
+    audio_dir = _init_audio_dir()
+    if not os.path.exists(audio_dir):
+        return None
+    
+    # 单个汉字
+    if len(text) == 1:
+        filepath = os.path.join(audio_dir, f"char_{text}.mp3")
+        if os.path.exists(filepath):
+            return filepath
+    
+    # 拼音（带声调的拼音）
+    # 检查是否是拼音格式
+    filepath = os.path.join(audio_dir, f"pinyin_{text}.mp3")
+    if os.path.exists(filepath):
+        return filepath
+    
+    # 词组
+    filepath = os.path.join(audio_dir, f"word_{text}.mp3")
+    if os.path.exists(filepath):
+        return filepath
+    
+    return None
+
+def find_praise_audio():
+    """随机获取一个表扬语音频文件"""
+    audio_dir = _init_audio_dir()
+    if not os.path.exists(audio_dir):
+        return None
+    
+    idx = random.randint(0, NUM_PRAISES - 1)
+    filepath = os.path.join(audio_dir, f"praise_{idx:02d}.mp3")
+    if os.path.exists(filepath):
+        return filepath
+    return None
+
+def find_encourage_audio():
+    """随机获取一个鼓励语音频文件"""
+    audio_dir = _init_audio_dir()
+    if not os.path.exists(audio_dir):
+        return None
+    
+    idx = random.randint(0, NUM_ENCOURAGES - 1)
+    filepath = os.path.join(audio_dir, f"encourage_{idx:02d}.mp3")
+    if os.path.exists(filepath):
+        return filepath
+    return None
+
+def find_short_praise_audio():
+    """随机获取一个简短表扬语音频文件"""
+    audio_dir = _init_audio_dir()
+    if not os.path.exists(audio_dir):
+        return None
+    
+    idx = random.randint(0, NUM_SHORT_PRAISES - 1)
+    filepath = os.path.join(audio_dir, f"short_praise_{idx:02d}.mp3")
+    if os.path.exists(filepath):
+        return filepath
+    return None
+
+def find_short_encourage_audio():
+    """随机获取一个简短鼓励语音频文件"""
+    audio_dir = _init_audio_dir()
+    if not os.path.exists(audio_dir):
+        return None
+    
+    idx = random.randint(0, NUM_SHORT_ENCOURAGES - 1)
+    filepath = os.path.join(audio_dir, f"short_encourage_{idx:02d}.mp3")
+    if os.path.exists(filepath):
+        return filepath
+    return None
 
 
 # ============================================================
@@ -303,9 +424,17 @@ class KivyAudio(AudioInterface):
             self._do_speak(text)
     
     def speak(self, text: str, rate: str = "+0%"):
-        """朗读文字"""
+        """朗读文字 - 优先使用本地预生成音频"""
         print(f"[KivyAudio] speak: '{text}', ready={self.tts_ready}, platform={self.platform}")
         
+        # 优先查找本地音频文件
+        local_audio = find_local_audio(text)
+        if local_audio:
+            print(f"[KivyAudio] 使用本地音频: {local_audio}")
+            Clock.schedule_once(lambda dt: self._play_file(local_audio, cleanup=False), 0)
+            return
+        
+        # 本地没有，使用TTS
         if not self.tts_ready:
             print(f"[KivyAudio] TTS未就绪，加入队列")
             self._pending_speaks.append(text)
@@ -364,8 +493,13 @@ class KivyAudio(AudioInterface):
         except Exception as e:
             print(f"[KivyAudio] Edge TTS错误: {e}")
     
-    def _play_file(self, filepath: str):
-        """播放音频文件"""
+    def _play_file(self, filepath: str, cleanup: bool = True):
+        """播放音频文件
+        
+        Args:
+            filepath: 音频文件路径
+            cleanup: 是否在播放后清理文件（本地预生成文件不需要清理）
+        """
         try:
             if self.current_sound:
                 self.current_sound.stop()
@@ -374,8 +508,9 @@ class KivyAudio(AudioInterface):
             if sound:
                 self.current_sound = sound
                 sound.play()
-                # 延迟清理
-                Clock.schedule_once(lambda dt: self._cleanup(filepath), sound.length + 1)
+                # 延迟清理（仅清理临时文件）
+                if cleanup:
+                    Clock.schedule_once(lambda dt: self._cleanup(filepath), sound.length + 1)
         except Exception as e:
             print(f"[KivyAudio] 播放文件错误: {e}")
     
@@ -388,12 +523,40 @@ class KivyAudio(AudioInterface):
             pass
     
     def play_praise(self):
-        """播放表扬"""
-        self.speak(random.choice(get_praises()))
+        """播放表扬 - 优先使用本地预生成音频"""
+        local_audio = find_praise_audio()
+        if local_audio:
+            print(f"[KivyAudio] 使用本地表扬音频: {local_audio}")
+            Clock.schedule_once(lambda dt: self._play_file(local_audio, cleanup=False), 0)
+        else:
+            self.speak(random.choice(get_praises()))
     
     def play_encourage(self):
-        """播放鼓励"""
-        self.speak(random.choice(get_encourages()))
+        """播放鼓励 - 优先使用本地预生成音频"""
+        local_audio = find_encourage_audio()
+        if local_audio:
+            print(f"[KivyAudio] 使用本地鼓励音频: {local_audio}")
+            Clock.schedule_once(lambda dt: self._play_file(local_audio, cleanup=False), 0)
+        else:
+            self.speak(random.choice(get_encourages()))
+    
+    def play_short_praise(self):
+        """播放简短表扬（用于打地鼠等快节奏游戏）"""
+        local_audio = find_short_praise_audio()
+        if local_audio:
+            print(f"[KivyAudio] 使用本地简短表扬音频: {local_audio}")
+            Clock.schedule_once(lambda dt: self._play_file(local_audio, cleanup=False), 0)
+        else:
+            self.speak(random.choice(SHORT_PRAISES))
+    
+    def play_short_encourage(self):
+        """播放简短鼓励（用于打地鼠等快节奏游戏）"""
+        local_audio = find_short_encourage_audio()
+        if local_audio:
+            print(f"[KivyAudio] 使用本地简短鼓励音频: {local_audio}")
+            Clock.schedule_once(lambda dt: self._play_file(local_audio, cleanup=False), 0)
+        else:
+            self.speak(random.choice(SHORT_ENCOURAGES))
     
     def play_sound(self, sound_name: str):
         """播放音效"""

@@ -4,15 +4,18 @@ package.name = lelehanzi
 package.domain = com.lele
 
 source.dir = .
-source.include_exts = py,png,jpg,jpeg,kv,atlas,json,ttc,ttf
-source.include_patterns = 汪汪队图片/*,core/*,ui_kivy/*
+source.include_exts = py,png,jpg,jpeg,kv,atlas,json,ttc,ttf,mp3
+source.include_patterns = 汪汪队图片/*,core/*,ui_kivy/*,audio/generated/*
 source.exclude_patterns = backup_*,build,dist,__pycache__,.git,.github,*.pyc,*.pyo
 source.main = main.py
 
-version = 1.5.3
+version = 1.5.6
 
 # 应用图标 (莱德)
 icon.filename = icon.png
+
+# 启动画面 - 汪汪队主题
+presplash.filename = 汪汪队图片/多个狗狗.jpg
 
 # 依赖：添加pyjnius用于Android TTS
 requirements = python3,kivy,pyjnius
