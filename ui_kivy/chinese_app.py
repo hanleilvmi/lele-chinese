@@ -1584,9 +1584,14 @@ class MatchCard(BoxLayout):
             self.remove_widget(self.content_widget)
         
         if self.card_type == 'picture':
-            # 显示图片
-            self.content_widget = PictureCanvas()
-            self.content_widget.draw_char(self.char)
+            # 显示图片 - 使用FloatLayout包装确保居中
+            from kivy.uix.floatlayout import FloatLayout
+            container = FloatLayout()
+            pic = PictureCanvas(size_hint=(0.9, 0.9), pos_hint={'center_x': 0.5, 'center_y': 0.5})
+            # 延迟绘制，等待布局完成
+            Clock.schedule_once(lambda dt: pic.draw_char(self.char), 0.05)
+            container.add_widget(pic)
+            self.content_widget = container
         else:
             # 显示汉字
             self.content_widget = Label(
