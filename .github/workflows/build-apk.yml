@@ -49,10 +49,6 @@ jobs:
         pip install --upgrade pip setuptools wheel
         pip install buildozer==1.5.0 cython==0.29.36
     
-    - name: Prepare main.py
-      run: |
-        cp chinese_app_pydroid.py main.py
-    
     - name: Build APK with buildozer
       run: |
         yes | buildozer android debug 2>&1 | tail -500
