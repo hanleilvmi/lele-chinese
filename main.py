@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 乐乐的识字乐园 - Android/鸿蒙 APK 入口文件
-v1.3.0 - 修复TTS语音问题
+v1.5.1 - 汪汪队主题风格
 """
 import os
 import sys
