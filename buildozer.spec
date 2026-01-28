@@ -9,14 +9,16 @@ source.include_patterns = 汪汪队图片/*,core/*,ui_kivy/*
 source.exclude_patterns = backup_*,build,dist,__pycache__,.git,.github,*.pyc,*.pyo
 source.main = main.py
 
-version = 1.2.0
+version = 1.3.0
 
 # 应用图标 (莱德)
 icon.filename = icon.png
 
+# 依赖：添加pyjnius用于Android TTS
 requirements = python3,kivy,pyjnius
 
-android.permissions = INTERNET
+# 权限：添加存储权限用于保存学习进度
+android.permissions = INTERNET,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE
 
 android.api = 33
 android.minapi = 21
@@ -26,6 +28,7 @@ android.sdk = 33
 orientation = landscape
 fullscreen = 1
 
+# 支持的CPU架构
 android.archs = arm64-v8a,armeabi-v7a
 
 android.accept_sdk_license = True

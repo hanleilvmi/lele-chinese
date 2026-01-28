@@ -307,10 +307,22 @@ def get_path(*parts):
 def get_data_path(filename):
     """获取数据文件路径（用于保存用户数据）
     
-    在安卓上会使用应用数据目录
+    在安卓/鸿蒙上会使用应用私有数据目录
     """
     if IS_MOBILE:
-        # 安卓数据目录
+        # 尝试获取Android应用数据目录
+        try:
+            from jnius import autoclass
+            PythonActivity = autoclass('org.kivy.android.PythonActivity')
+            context = PythonActivity.mActivity
+            if context:
+                # 使用应用私有目录（无需权限）
+                data_dir = context.getFilesDir().getAbsolutePath()
+                return os.path.join(data_dir, filename)
+        except Exception as e:
+            print(f"[ui_config] 获取Android数据目录失败: {e}")
+        
+        # 后备方案：使用环境变量或应用根目录
         data_dir = os.environ.get('ANDROID_DATA', APP_ROOT)
         return os.path.join(data_dir, filename)
     else:
