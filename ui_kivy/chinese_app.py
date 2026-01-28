@@ -507,14 +507,23 @@ class ChineseMenuScreen(Screen):
         layout.add_widget(self.games_grid)
         
         # ===== 底部狗狗展示区 =====
-        bottom = BoxLayout(size_hint=(1, 0.10), spacing=dp(5))
+        bottom = BoxLayout(size_hint=(1, 0.10), spacing=dp(5), orientation='vertical')
         # 底部文字
         bottom.add_widget(Label(
             text='汪汪队，准备出发！',
             font_size=get_font_size(18),
             color=get_color_from_hex('#1565C0'),
-            bold=True
+            bold=True,
+            size_hint=(1, 0.6)
         ))
+        # 调试信息（小字显示音频状态）
+        self.debug_label = Label(
+            text='',
+            font_size=get_font_size(10),
+            color=get_color_from_hex('#999999'),
+            size_hint=(1, 0.4)
+        )
+        bottom.add_widget(self.debug_label)
         layout.add_widget(bottom)
         
         self.add_widget(layout)
@@ -524,6 +533,9 @@ class ChineseMenuScreen(Screen):
         
         # 启动入场动画
         Clock.schedule_once(self.start_entrance_animation, 0.3)
+        
+        # 延迟显示调试信息
+        Clock.schedule_once(self.show_debug_info, 2.0)
     
     def add_paw_patrol_decorations(self):
         """添加丰富的汪汪队装饰 - 使用pos_hint实现自适应布局"""
@@ -661,6 +673,25 @@ class ChineseMenuScreen(Screen):
         self._update_deco_positions()
         # 标题闪烁动画
         self.animate_title()
+        # 更新调试信息
+        self.show_debug_info(None)
+    
+    def show_debug_info(self, dt):
+        """显示调试信息 - 音频文件状态"""
+        if not hasattr(self, 'debug_label'):
+            return
+        try:
+            import os
+            from audio_kivy import get_audio_dir, PLATFORM
+            audio_dir = get_audio_dir()
+            if os.path.exists(audio_dir):
+                files = os.listdir(audio_dir)
+                mp3_count = len([f for f in files if f.endswith('.mp3')])
+                self.debug_label.text = f'v1.5.9 | 音频:{mp3_count}个 | {PLATFORM}'
+            else:
+                self.debug_label.text = f'v1.5.9 | 音频:未找到 | {PLATFORM} | {audio_dir[:30]}...'
+        except Exception as e:
+            self.debug_label.text = f'v1.5.9 | 音频错误:{str(e)[:20]}'
     
     def animate_title(self):
         """标题颜色动画"""
