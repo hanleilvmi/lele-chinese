@@ -27,17 +27,58 @@ from core.audio_interface import AudioInterface
 # ============================================================
 def get_audio_dir():
     """获取音频文件目录"""
-    # 尝试多个可能的路径
-    possible_paths = [
-        os.path.join(os.path.dirname(__file__), '..', 'audio', 'generated'),
-        os.path.join(os.path.dirname(__file__), 'audio', 'generated'),
-        '/data/data/com.lele.lelehanzi/files/app/audio/generated',  # Android路径
-        'audio/generated',
-    ]
+    possible_paths = []
+    
+    # 获取当前文件所在目录
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    app_dir = os.path.dirname(current_dir)  # ui_kivy的父目录
+    
+    # 优先使用相对于app目录的路径
+    possible_paths.append(os.path.join(app_dir, 'audio', 'generated'))
+    
+    # 桌面路径
+    possible_paths.append(os.path.join(current_dir, '..', 'audio', 'generated'))
+    possible_paths.append('audio/generated')
+    
+    # Android路径
+    if PLATFORM == 'android':
+        # Kivy在Android上的应用目录
+        try:
+            from kivy.app import App
+            app_instance = App.get_running_app()
+            if app_instance:
+                user_data_dir = app_instance.user_data_dir
+                possible_paths.insert(0, os.path.join(os.path.dirname(user_data_dir), 'app', 'audio', 'generated'))
+        except:
+            pass
+        
+        # 尝试从__file__推断
+        possible_paths.insert(0, os.path.join(app_dir, 'audio', 'generated'))
+        
+        # 常见的Android应用路径
+        possible_paths.append('/data/data/com.lele.lelehanzi/files/app/audio/generated')
+        possible_paths.append('/data/user/0/com.lele.lelehanzi/files/app/audio/generated')
+    
     for path in possible_paths:
-        if os.path.exists(path):
-            return os.path.abspath(path)
-    return possible_paths[0]  # 返回默认路径
+        try:
+            abs_path = os.path.abspath(path)
+            if os.path.exists(abs_path):
+                # 检查目录是否有mp3文件
+                files = os.listdir(abs_path)
+                mp3_files = [f for f in files if f.endswith('.mp3')]
+                if mp3_files:
+                    print(f"[audio] 找到音频目录: {abs_path} ({len(mp3_files)}个文件)")
+                    return abs_path
+        except Exception as e:
+            print(f"[audio] 检查路径失败 {path}: {e}")
+    
+    # 如果都不存在，打印调试信息
+    print(f"[audio] 警告：未找到音频目录")
+    print(f"[audio] 当前目录: {os.getcwd()}")
+    print(f"[audio] __file__: {__file__}")
+    print(f"[audio] app_dir: {app_dir}")
+    
+    return os.path.join(app_dir, 'audio', 'generated')  # 返回默认路径
 
 AUDIO_DIR = None  # 延迟初始化
 

@@ -1414,7 +1414,7 @@ class ChineseMatchScreen(Screen):
         
         # 难度选择按钮
         diff_layout = BoxLayout(size_hint=(1, 0.08), spacing=dp(8), padding=[dp(10), 0])
-        diff_label = Label(text='难度:', font_size=get_font_size(16), size_hint=(0.1, 1), color=get_color_from_hex('#666'))
+        diff_label = Label(text='难度:', font_size=get_font_size(16), size_hint=(0.1, 1), color=get_color_from_hex('#666666'))
         diff_layout.add_widget(diff_label)
         
         difficulties = [
