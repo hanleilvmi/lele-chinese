@@ -2,7 +2,7 @@
 """
 乐乐的识字乐园 - Android/鸿蒙平板优化版
 专为3-5岁儿童设计的汉字学习应用
-v1.3.3 - 添加所有汉字故事，增加趣味装饰
+v1.5.0 - 汪汪队主题风格统一，每个模块对应一只狗狗
 """
 import sys
 import os
@@ -308,11 +308,41 @@ except ImportError:
 
 # 导入装饰模块
 try:
-    from decorations import StarWidget, HeartWidget, SunWidget, CloudWidget, FlowerWidget, PawPrintWidget, create_confetti_burst
+    from decorations import (
+        StarWidget, HeartWidget, SunWidget, CloudWidget, FlowerWidget, 
+        PawPrintWidget, ButterflyWidget, BalloonWidget, TreeWidget,
+        BirdWidget, FishWidget, CatWidget, DogWidget, RainbowWidget,
+        CrownWidget, TrophyWidget, GiftBoxWidget, MoonWidget,
+        create_confetti_burst, create_star_burst, create_heart_burst,
+        create_firework, create_bubble_float,
+        animate_float, animate_rotate, animate_pulse, animate_heartbeat,
+        animate_wing_flap, animate_bounce, animate_twinkle, animate_swing,
+        add_corner_decorations, create_sky_scene, create_garden_scene,
+        create_celebration_scene
+    )
     DECORATIONS_AVAILABLE = True
 except ImportError:
     DECORATIONS_AVAILABLE = False
-    print("[chinese_app] 装饰模块未找到，将不显示装饰")
+    print("[chinese_app] 装饰模块未找到")
+
+# 导入汪汪队主题模块
+try:
+    from paw_patrol_theme import (
+        PAW_COLORS, PawBadgeWidget, PawPrintWidget as PawPrint, BoneWidget,
+        DogBowlWidget, DogHouseWidget, CollarWidget,
+        ChaseHeadWidget, MarshallHeadWidget, SkyeHeadWidget,
+        RubbleHeadWidget, RockyHeadWidget, ZumaHeadWidget,
+        animate_paw_bounce, animate_bone_spin, animate_badge_shine,
+        create_paw_trail, create_bone_rain, create_badge_burst,
+        create_puppy_celebration, create_paw_patrol_scene,
+        create_paw_patrol_header, create_paw_patrol_footer,
+        get_paw_patrol_button_colors, get_random_puppy_color
+    )
+    PAW_PATROL_AVAILABLE = True
+    print("[chinese_app] 汪汪队主题模块已加载")
+except ImportError as e:
+    PAW_PATROL_AVAILABLE = False
+    print(f"[chinese_app] 汪汪队主题模块未找到: {e}")
 
 # 导入音频模块
 try:
@@ -371,7 +401,7 @@ def get_spacing():
 
 
 class ChineseMenuScreen(Screen):
-    """识字乐园主菜单 - 儿童触摸优化"""
+    """识字乐园主菜单 - 汪汪队主题风格"""
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -380,62 +410,78 @@ class ChineseMenuScreen(Screen):
     def build_ui(self):
         layout = BoxLayout(orientation='vertical', padding=get_padding(), spacing=get_spacing())
         
+        # 汪汪队蓝色背景
         with layout.canvas.before:
-            Color(*get_color_from_hex('#FFF8E1'))
+            Color(*get_color_from_hex('#E3F2FD'))  # 浅蓝色背景
             self.bg = Rectangle(pos=layout.pos, size=layout.size)
         layout.bind(pos=lambda i,v: setattr(self.bg, 'pos', v),
                    size=lambda i,v: setattr(self.bg, 'size', v))
         
-        # 标题区域 - 带动画的标题
-        title_box = BoxLayout(size_hint=(1, 0.12))
+        # ===== 顶部标题区域 - 汪汪队风格 =====
+        header = BoxLayout(size_hint=(1, 0.18), spacing=dp(10))
+        
+        # 左侧徽章装饰区
+        left_deco = BoxLayout(size_hint=(0.15, 1))
+        header.add_widget(left_deco)
+        
+        # 中间标题
+        title_box = BoxLayout(orientation='vertical', size_hint=(0.7, 1))
         self.title_label = Label(
-            text='乐乐的识字乐园',
-            font_size=get_font_size(42),
-            color=get_color_from_hex('#E65100'),
-            bold=True
+            text='汪汪队识字乐园',
+            font_size=get_font_size(38),
+            color=get_color_from_hex('#1565C0'),  # 阿奇蓝
+            bold=True,
+            size_hint=(1, 0.6)
         )
         title_box.add_widget(self.title_label)
-        layout.add_widget(title_box)
         
-        # 副标题
         self.subtitle = Label(
-            text='点击下面的游戏开始学习汉字吧！',
-            font_size=get_font_size(20),
-            color=get_color_from_hex('#666666'),
-            size_hint=(1, 0.06)
+            text='没有困难的任务，只有勇敢的狗狗！',
+            font_size=get_font_size(16),
+            color=get_color_from_hex('#D32F2F'),  # 毛毛红
+            size_hint=(1, 0.4)
         )
-        layout.add_widget(self.subtitle)
+        title_box.add_widget(self.subtitle)
+        header.add_widget(title_box)
         
-        # 游戏选择区 - 4列2行，排版整齐
+        # 右侧装饰区
+        right_deco = BoxLayout(size_hint=(0.15, 1))
+        header.add_widget(right_deco)
+        
+        layout.add_widget(header)
+        
+        # ===== 游戏选择区 - 带狗狗图标 =====
         self.games_grid = GridLayout(
-            cols=4,  # 固定4列，8个模块正好2行
-            spacing=screen_adapter.card_spacing(), 
-            size_hint=(1, 0.70), 
-            padding=dp(15)
+            cols=4,
+            spacing=dp(12), 
+            size_hint=(1, 0.72), 
+            padding=dp(10)
         )
         
-        # 使用大汉字作为图标，配合颜色更醒目
+        # 每个游戏对应一只狗狗
         game_list = [
-            ('学', '学汉字', '认识基础汉字', '#FF7043', 'chinese_learn'),
-            ('写', '描红写字', '学写汉字', '#FF9800', 'chinese_write'),
-            ('故', '汉字故事', '汉字的由来', '#66BB6A', 'chinese_story'),
-            ('图', '看图选字', '看图片选汉字', '#4ECDC4', 'chinese_picture'),
-            ('考', '汉字测验', '考考你学会了吗', '#42A5F5', 'chinese_quiz'),
-            ('配', '汉字配对', '找到相同的字', '#9C27B0', 'chinese_match'),
-            ('打', '打地鼠', '快速找汉字', '#FFD93D', 'chinese_whack'),
-            ('闯', '闯关模式', '一关一关闯', '#E91E63', 'chinese_challenge'),
+            ('学', '学汉字', '跟阿奇学', '#1565C0', 'chinese_learn', 'chase'),
+            ('写', '描红写字', '跟毛毛写', '#D32F2F', 'chinese_write', 'marshall'),
+            ('故', '汉字故事', '跟灰灰听', '#43A047', 'chinese_story', 'rocky'),
+            ('图', '看图选字', '跟珠珠玩', '#00ACC1', 'chinese_picture', 'everest'),
+            ('考', '汉字测验', '跟天天考', '#EC407A', 'chinese_quiz', 'skye'),
+            ('配', '汉字配对', '跟路马配', '#FF9800', 'chinese_match', 'zuma'),
+            ('打', '打地鼠', '跟小砾打', '#FDD835', 'chinese_whack', 'rubble'),
+            ('闯', '闯关模式', '跟小克闯', '#7CB342', 'chinese_challenge', 'tracker'),
         ]
         
         self.game_buttons = []
-        for icon, title, desc, color, screen in game_list:
+        for icon, title, desc, color, screen, puppy in game_list:
             btn = Button(
                 background_normal='',
                 background_color=get_color_from_hex(color),
                 size_hint_min=(dp(120), dp(100))
             )
             btn.markup = True
-            btn.text = f'[size={int(sp(48))}]{icon}[/size]\n[b][size={int(sp(20))}]{title}[/size][/b]\n[size={int(sp(13))}]{desc}[/size]'
+            # 添加爪印符号作为装饰
+            btn.text = f'[size={int(sp(44))}]{icon}[/size]\n[b][size={int(sp(18))}]{title}[/size][/b]\n[size={int(sp(12))}]{desc}[/size]'
             btn.target_screen = screen
+            btn.puppy_name = puppy
             btn.original_color = get_color_from_hex(color)
             btn.bind(on_press=self.on_button_press)
             btn.bind(on_release=self.on_button_release)
@@ -444,43 +490,133 @@ class ChineseMenuScreen(Screen):
         
         layout.add_widget(self.games_grid)
         
-        # 底部信息
-        bottom = BoxLayout(size_hint=(1, 0.08))
+        # ===== 底部狗狗展示区 =====
+        bottom = BoxLayout(size_hint=(1, 0.10), spacing=dp(5))
+        # 底部文字
         bottom.add_widget(Label(
-            text='~ 适合3-5岁小朋友 ~',
-            font_size=get_font_size(16),
-            color=get_color_from_hex('#999999')
+            text='汪汪队，准备出发！',
+            font_size=get_font_size(18),
+            color=get_color_from_hex('#1565C0'),
+            bold=True
         ))
         layout.add_widget(bottom)
         
         self.add_widget(layout)
         
-        # 添加装饰元素
-        self.add_decorations()
+        # 添加汪汪队装饰
+        self.add_paw_patrol_decorations()
         
         # 启动入场动画
         Clock.schedule_once(self.start_entrance_animation, 0.3)
     
-    def add_decorations(self):
-        """添加可爱的装饰元素"""
-        if not DECORATIONS_AVAILABLE:
+    def add_paw_patrol_decorations(self):
+        """添加丰富的汪汪队装饰 - 使用pos_hint实现自适应布局"""
+        if not PAW_PATROL_AVAILABLE:
             return
         
-        # 在角落添加装饰
-        decorations_config = [
-            (SunWidget, (dp(60), dp(60)), (dp(20), Window.height - dp(80))),
-            (CloudWidget, (dp(80), dp(50)), (Window.width - dp(100), Window.height - dp(70))),
-            (FlowerWidget, (dp(50), dp(50)), (dp(30), dp(30))),
-            (PawPrintWidget, (dp(45), dp(45)), (Window.width - dp(70), dp(40))),
-        ]
+        self.deco_widgets = []  # 保存装饰组件引用
         
-        for widget_class, size, pos in decorations_config:
-            try:
-                deco = widget_class(size_hint=(None, None), size=size, pos=pos)
-                deco.opacity = 0.7
-                self.add_widget(deco)
-            except:
-                pass
+        try:
+            # ===== 左上角徽章 =====
+            badge = PawBadgeWidget(
+                color=PAW_COLORS['blue'],
+                size_hint=(None, None),
+                size=(dp(50), dp(50))
+            )
+            badge.deco_pos = 'top_left'
+            self.add_widget(badge)
+            self.deco_widgets.append(badge)
+            animate_badge_shine(badge)
+            
+            # ===== 右上角骨头 =====
+            bone = BoneWidget(
+                size_hint=(None, None),
+                size=(dp(45), dp(28))
+            )
+            bone.deco_pos = 'top_right'
+            self.add_widget(bone)
+            self.deco_widgets.append(bone)
+            animate_bone_spin(bone, duration=5)
+            
+            # ===== 左下角狗碗 =====
+            bowl = DogBowlWidget(
+                bowl_color=PAW_COLORS['blue'],
+                size_hint=(None, None),
+                size=(dp(42), dp(35))
+            )
+            bowl.deco_pos = 'bottom_left'
+            bowl.opacity = 0.8
+            self.add_widget(bowl)
+            self.deco_widgets.append(bowl)
+            
+            # ===== 右下角狗窝 =====
+            doghouse = DogHouseWidget(
+                roof_color=PAW_COLORS['red'],
+                size_hint=(None, None),
+                size=(dp(50), dp(45))
+            )
+            doghouse.deco_pos = 'bottom_right'
+            doghouse.opacity = 0.8
+            self.add_widget(doghouse)
+            self.deco_widgets.append(doghouse)
+            
+            # ===== 底部爪印装饰 =====
+            paw_colors = [
+                PAW_COLORS['chase'], PAW_COLORS['marshall'], 
+                PAW_COLORS['skye'], PAW_COLORS['rubble'],
+                PAW_COLORS['rocky'], PAW_COLORS['zuma']
+            ]
+            for i in range(6):
+                paw = PawPrint(
+                    color=paw_colors[i],
+                    size_hint=(None, None),
+                    size=(dp(25), dp(25))
+                )
+                paw.deco_pos = f'bottom_paw_{i}'
+                paw.opacity = 0.85
+                self.add_widget(paw)
+                self.deco_widgets.append(paw)
+                animate_paw_bounce(paw, height=5, duration=1.5 + i * 0.1)
+            
+            # 绑定尺寸变化事件，自动更新装饰位置
+            self.bind(size=self._update_deco_positions, pos=self._update_deco_positions)
+            
+        except Exception as e:
+            print(f"[Menu] 添加汪汪队装饰失败: {e}")
+    
+    def _update_deco_positions(self, *args):
+        """根据Screen尺寸更新装饰位置"""
+        if not hasattr(self, 'deco_widgets'):
+            return
+        
+        w, h = self.size
+        x, y = self.pos
+        
+        for widget in self.deco_widgets:
+            if not hasattr(widget, 'deco_pos'):
+                continue
+            
+            pos_type = widget.deco_pos
+            
+            if pos_type == 'top_left':
+                widget.pos = (x + dp(10), y + h - dp(68))
+            elif pos_type == 'top_right':
+                widget.pos = (x + w - dp(60), y + h - dp(55))
+            elif pos_type == 'bottom_left':
+                widget.pos = (x + dp(5), y + dp(2))
+            elif pos_type == 'bottom_right':
+                widget.pos = (x + w - dp(58), y + dp(2))
+            elif pos_type.startswith('bottom_paw_'):
+                idx = int(pos_type.split('_')[-1])
+                # 爪印均匀分布在底部中间区域
+                paw_area_start = x + dp(80)
+                paw_area_width = w - dp(160)
+                paw_spacing = paw_area_width / 6
+                widget.pos = (paw_area_start + idx * paw_spacing, y + dp(38))
+    
+    def add_decorations(self):
+        """兼容旧方法"""
+        pass
     
     def start_entrance_animation(self, dt):
         """入场动画 - 按钮依次弹出"""
@@ -512,6 +648,8 @@ class ChineseMenuScreen(Screen):
     
     def on_enter(self):
         """进入页面时的动画"""
+        # 更新装饰位置
+        self._update_deco_positions()
         # 标题闪烁动画
         self.animate_title()
     
@@ -529,7 +667,7 @@ class ChineseMenuScreen(Screen):
 
 
 class ChineseLearnScreen(Screen):
-    """学汉字 - 卡片学习模式（分页）- 触摸优化"""
+    """学汉字 - 卡片学习模式（分页）- 阿奇主题"""
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -541,28 +679,29 @@ class ChineseLearnScreen(Screen):
     def build_ui(self):
         layout = BoxLayout(orientation='vertical', padding=get_padding(), spacing=get_spacing())
         
+        # 阿奇蓝色调背景
         with layout.canvas.before:
-            Color(*get_color_from_hex('#FFF3E0'))
+            Color(*get_color_from_hex('#E3F2FD'))
             self.bg = Rectangle(pos=layout.pos, size=layout.size)
         layout.bind(pos=lambda i,v: setattr(self.bg, 'pos', v),
                    size=lambda i,v: setattr(self.bg, 'size', v))
         
-        # 导航栏 - 更大的返回按钮
+        # 导航栏 - 阿奇蓝色主题
         nav = BoxLayout(size_hint=(1, 0.12), spacing=dp(10))
         back_btn = Button(
             text='< 返回',
             size_hint=(0.18, 1),
             font_size=get_font_size(20),
-            background_color=get_color_from_hex('#FF7043'),
+            background_color=get_color_from_hex('#1565C0'),  # 阿奇蓝
             background_normal=''
         )
         back_btn.bind(on_press=lambda x: setattr(self.manager, 'current', 'chinese_menu'))
         nav.add_widget(back_btn)
         
         nav.add_widget(Label(
-            text='学汉字',
-            font_size=get_font_size(30),
-            color=get_color_from_hex('#E65100'),
+            text='跟阿奇学汉字',
+            font_size=get_font_size(28),
+            color=get_color_from_hex('#1565C0'),
             bold=True,
             size_hint=(0.47, 1)
         ))
@@ -573,7 +712,7 @@ class ChineseLearnScreen(Screen):
             btn = Button(
                 text=text,
                 font_size=get_font_size(14),
-                background_color=get_color_from_hex('#4CAF50' if lv == self.current_level else '#BDBDBD'),
+                background_color=get_color_from_hex('#1565C0' if lv == self.current_level else '#90CAF9'),
                 background_normal=''
             )
             btn.level = lv
@@ -586,7 +725,7 @@ class ChineseLearnScreen(Screen):
         self.hint = Label(
             text='点击汉字卡片学习！',
             font_size=get_font_size(20),
-            color=get_color_from_hex('#666666'),
+            color=get_color_from_hex('#1565C0'),
             size_hint=(1, 0.08)
         )
         layout.add_widget(self.hint)
@@ -953,7 +1092,7 @@ class ChineseDetailScreen(Screen):
 
 
 class ChineseQuizScreen(Screen):
-    """汉字测验 - 选择题模式 - 触摸优化"""
+    """汉字测验 - 选择题模式 - 天天主题"""
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -965,28 +1104,29 @@ class ChineseQuizScreen(Screen):
     def build_ui(self):
         layout = BoxLayout(orientation='vertical', padding=get_padding(), spacing=get_spacing())
         
+        # 天天粉色背景
         with layout.canvas.before:
-            Color(*get_color_from_hex('#E8F5E9'))
+            Color(*get_color_from_hex('#FCE4EC'))
             self.bg = Rectangle(pos=layout.pos, size=layout.size)
         layout.bind(pos=lambda i,v: setattr(self.bg, 'pos', v),
                    size=lambda i,v: setattr(self.bg, 'size', v))
         
-        # 导航栏 - 更大的按钮
+        # 导航栏 - 天天粉色主题
         nav = BoxLayout(size_hint=(1, 0.12), spacing=dp(10))
         back_btn = Button(
             text='< 返回',
             size_hint=(0.18, 1),
             font_size=get_font_size(20),
-            background_color=get_color_from_hex('#66BB6A'),
+            background_color=get_color_from_hex('#EC407A'),  # 天天粉
             background_normal=''
         )
         back_btn.bind(on_press=lambda x: setattr(self.manager, 'current', 'chinese_menu'))
         nav.add_widget(back_btn)
         
         nav.add_widget(Label(
-            text='汉字测验',
-            font_size=get_font_size(30),
-            color=get_color_from_hex('#2E7D32'),
+            text='跟天天测验',
+            font_size=get_font_size(28),
+            color=get_color_from_hex('#EC407A'),
             bold=True,
             size_hint=(0.47, 1)
         ))
@@ -994,7 +1134,7 @@ class ChineseQuizScreen(Screen):
         self.score_label = Label(
             text='得分: 0',
             font_size=get_font_size(22),
-            color=get_color_from_hex('#FF6B6B'),
+            color=get_color_from_hex('#EC407A'),
             size_hint=(0.18, 1)
         )
         nav.add_widget(self.score_label)
@@ -1002,7 +1142,7 @@ class ChineseQuizScreen(Screen):
         self.progress_label = Label(
             text='0/10',
             font_size=get_font_size(20),
-            color=get_color_from_hex('#666666'),
+            color=get_color_from_hex('#F48FB1'),
             size_hint=(0.17, 1)
         )
         nav.add_widget(self.progress_label)
@@ -1122,10 +1262,31 @@ class ChineseQuizScreen(Screen):
             # 答对动画
             animate_correct(instance)
             play_praise()  # 播放表扬
-            # 彩色纸屑效果
-            if DECORATIONS_AVAILABLE:
+            # 汪汪队庆祝效果
+            if PAW_PATROL_AVAILABLE:
                 try:
-                    create_confetti_burst(self, instance.center_x, instance.center_y, count=12)
+                    effect = random.choice(['badge', 'puppy', 'paw', 'bone'])
+                    if effect == 'badge':
+                        create_badge_burst(self, instance.center_x, instance.center_y, count=6)
+                    elif effect == 'puppy':
+                        create_puppy_celebration(self, instance.center_x, instance.center_y)
+                    elif effect == 'paw':
+                        create_paw_trail(self, instance.x - dp(50), instance.center_y, count=4)
+                    else:
+                        create_bone_rain(self, count=6)
+                except:
+                    pass
+            elif DECORATIONS_AVAILABLE:
+                try:
+                    effect = random.choice(['confetti', 'stars', 'hearts', 'firework'])
+                    if effect == 'confetti':
+                        create_confetti_burst(self, instance.center_x, instance.center_y, count=15)
+                    elif effect == 'stars':
+                        create_star_burst(self, instance.center_x, instance.center_y, count=8)
+                    elif effect == 'hearts':
+                        create_heart_burst(self, instance.center_x, instance.center_y, count=6)
+                    else:
+                        create_firework(self, instance.center_x, instance.center_y)
                 except:
                     pass
         else:
@@ -1152,7 +1313,7 @@ class ChineseQuizScreen(Screen):
 
 
 class ChineseMatchScreen(Screen):
-    """汉字配对游戏"""
+    """汉字配对游戏 - 路马主题（橙色水上救援犬）"""
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -1167,28 +1328,29 @@ class ChineseMatchScreen(Screen):
     def build_ui(self):
         layout = BoxLayout(orientation='vertical', padding=get_padding(), spacing=dp(10))
         
+        # 路马橙色背景
         with layout.canvas.before:
-            Color(*get_color_from_hex('#E3F2FD'))
+            Color(*get_color_from_hex('#FFF3E0'))  # 浅橙色
             self.bg = Rectangle(pos=layout.pos, size=layout.size)
         layout.bind(pos=lambda i,v: setattr(self.bg, 'pos', v),
                    size=lambda i,v: setattr(self.bg, 'size', v))
         
-        # 导航栏
+        # 导航栏 - 路马橙色主题
         nav = BoxLayout(size_hint=(1, 0.1))
         back_btn = Button(
             text='< 返回',
             size_hint=(0.15, 1),
             font_size=get_font_size(18),
-            background_color=get_color_from_hex('#42A5F5'),
+            background_color=get_color_from_hex('#FF9800'),  # 路马橙
             background_normal=''
         )
         back_btn.bind(on_press=lambda x: setattr(self.manager, 'current', 'chinese_menu'))
         nav.add_widget(back_btn)
         
         nav.add_widget(Label(
-            text='【汉字配对】',
+            text='跟路马配对',
             font_size=get_font_size(28),
-            color=get_color_from_hex('#1565C0'),
+            color=get_color_from_hex('#E65100'),
             bold=True,
             size_hint=(0.55, 1)
         ))
@@ -1196,7 +1358,7 @@ class ChineseMatchScreen(Screen):
         self.score_label = Label(
             text='得分: 0',
             font_size=get_font_size(20),
-            color=get_color_from_hex('#FF6B6B'),
+            color=get_color_from_hex('#FF5722'),
             size_hint=(0.15, 1)
         )
         nav.add_widget(self.score_label)
@@ -1205,9 +1367,9 @@ class ChineseMatchScreen(Screen):
         
         # 提示
         self.hint_label = Label(
-            text='找到汉字和图片配对！',
+            text='路马说：找到汉字和图片配对！',
             font_size=get_font_size(20),
-            color=get_color_from_hex('#666666'),
+            color=get_color_from_hex('#E65100'),
             size_hint=(1, 0.08)
         )
         layout.add_widget(self.hint_label)
@@ -1365,7 +1527,7 @@ class ChineseMatchScreen(Screen):
 
 
 class ChineseWhackScreen(Screen):
-    """汉字打地鼠游戏"""
+    """汉字打地鼠游戏 - 小砾主题（黄色工程犬）"""
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -1381,28 +1543,29 @@ class ChineseWhackScreen(Screen):
     def build_ui(self):
         layout = BoxLayout(orientation='vertical', padding=get_padding(), spacing=dp(10))
         
+        # 小砾黄色背景
         with layout.canvas.before:
-            Color(*get_color_from_hex('#90EE90'))
+            Color(*get_color_from_hex('#FFFDE7'))  # 浅黄色
             self.bg = Rectangle(pos=layout.pos, size=layout.size)
         layout.bind(pos=lambda i,v: setattr(self.bg, 'pos', v),
                    size=lambda i,v: setattr(self.bg, 'size', v))
         
-        # 导航栏
+        # 导航栏 - 小砾黄色主题
         nav = BoxLayout(size_hint=(1, 0.08))
         back_btn = Button(
             text='< 返回',
             size_hint=(0.15, 1),
             font_size=get_font_size(18),
-            background_color=get_color_from_hex('#228B22'),
+            background_color=get_color_from_hex('#FDD835'),  # 小砾黄
             background_normal=''
         )
         back_btn.bind(on_press=self.go_back)
         nav.add_widget(back_btn)
         
         nav.add_widget(Label(
-            text='【汉字打地鼠】',
+            text='跟小砾打地鼠',
             font_size=get_font_size(26),
-            color=get_color_from_hex('#006400'),
+            color=get_color_from_hex('#F57F17'),
             bold=True,
             size_hint=(0.55, 1)
         ))
@@ -1424,11 +1587,11 @@ class ChineseWhackScreen(Screen):
         nav.add_widget(self.round_label)
         layout.add_widget(nav)
         
-        # 目标提示 - 大字体显眼
+        # 目标提示 - 小砾黄色
         target_box = BoxLayout(size_hint=(1, 0.12), padding=[dp(50), dp(5)])
         target_bg = Button(
             text='',
-            background_color=get_color_from_hex('#FFD700'),
+            background_color=get_color_from_hex('#FFEB3B'),  # 亮黄色
             background_normal='',
             size_hint=(1, 1)
         )
@@ -1436,7 +1599,7 @@ class ChineseWhackScreen(Screen):
         layout.add_widget(target_box)
         
         self.target_label = Label(
-            text='点击开始游戏！',
+            text='小砾说：点击开始！',
             font_size=get_font_size(32),
             color=get_color_from_hex('#DC143C'),
             size_hint=(1, 0.01)
@@ -1617,7 +1780,7 @@ class ChineseWhackScreen(Screen):
 
 
 class ChinesePictureScreen(Screen):
-    """看图选字游戏 - 根据图片/emoji选择正确的汉字"""
+    """看图选字游戏 - 珠珠主题（青色雪地救援犬）"""
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -1629,26 +1792,27 @@ class ChinesePictureScreen(Screen):
     def build_ui(self):
         layout = BoxLayout(orientation='vertical', padding=get_padding(), spacing=dp(10))
         
+        # 珠珠青色背景
         with layout.canvas.before:
-            Color(*get_color_from_hex('#E1F5FE'))
+            Color(*get_color_from_hex('#E0F7FA'))  # 浅青色
             self.bg = Rectangle(pos=layout.pos, size=layout.size)
         layout.bind(pos=lambda i,v: setattr(self.bg, 'pos', v),
                    size=lambda i,v: setattr(self.bg, 'size', v))
         
-        # 导航栏
+        # 导航栏 - 珠珠青色主题
         nav = BoxLayout(size_hint=(1, 0.1))
         back_btn = Button(
             text='< 返回',
             size_hint=(0.15, 1),
             font_size=get_font_size(18),
-            background_color=get_color_from_hex('#4ECDC4'),
+            background_color=get_color_from_hex('#00ACC1'),  # 珠珠青
             background_normal=''
         )
         back_btn.bind(on_press=lambda x: setattr(self.manager, 'current', 'chinese_menu'))
         nav.add_widget(back_btn)
         
         nav.add_widget(Label(
-            text='【看图选字】',
+            text='跟珠珠看图选字',
             font_size=get_font_size(28),
             color=get_color_from_hex('#00838F'),
             bold=True,
@@ -1674,9 +1838,9 @@ class ChinesePictureScreen(Screen):
         
         # 提示
         self.hint_label = Label(
-            text='看图片，选出正确的汉字！',
+            text='珠珠说：看图片，选汉字！',
             font_size=get_font_size(22),
-            color=get_color_from_hex('#333333'),
+            color=get_color_from_hex('#00838F'),
             size_hint=(1, 0.08)
         )
         layout.add_widget(self.hint_label)
@@ -1836,7 +2000,7 @@ class ChinesePictureScreen(Screen):
 
 
 class ChineseChallengeScreen(Screen):
-    """闯关模式 - 无时间压力，一关一关闯，解锁汪汪队狗狗"""
+    """闯关模式 - 小克主题（绿色丛林犬），解锁汪汪队狗狗"""
     
     # 每关解锁的狗狗
     LEVEL_PUPPIES = {
@@ -1867,28 +2031,29 @@ class ChineseChallengeScreen(Screen):
     def build_ui(self):
         layout = BoxLayout(orientation='vertical', padding=get_padding(), spacing=dp(10))
         
+        # 小克绿色背景
         with layout.canvas.before:
-            Color(*get_color_from_hex('#F3E5F5'))
+            Color(*get_color_from_hex('#E8F5E9'))  # 浅绿色
             self.bg = Rectangle(pos=layout.pos, size=layout.size)
         layout.bind(pos=lambda i,v: setattr(self.bg, 'pos', v),
                    size=lambda i,v: setattr(self.bg, 'size', v))
         
-        # 导航栏
+        # 导航栏 - 小克绿色主题
         nav = BoxLayout(size_hint=(1, 0.1))
         back_btn = Button(
             text='< 返回',
             size_hint=(0.15, 1),
             font_size=get_font_size(18),
-            background_color=get_color_from_hex('#9C27B0'),
+            background_color=get_color_from_hex('#7CB342'),  # 小克绿
             background_normal=''
         )
         back_btn.bind(on_press=lambda x: setattr(self.manager, 'current', 'chinese_menu'))
         nav.add_widget(back_btn)
         
         nav.add_widget(Label(
-            text='【闯关模式】',
+            text='跟小克闯关',
             font_size=get_font_size(28),
-            color=get_color_from_hex('#7B1FA2'),
+            color=get_color_from_hex('#33691E'),
             bold=True,
             size_hint=(0.4, 1)
         ))
@@ -1922,9 +2087,9 @@ class ChineseChallengeScreen(Screen):
         
         # 提示
         self.hint_label = Label(
-            text='每关答对3题即可过关！',
+            text='小克说：每关答对3题过关！',
             font_size=get_font_size(20),
-            color=get_color_from_hex('#333333'),
+            color=get_color_from_hex('#33691E'),
             size_hint=(1, 0.08)
         )
         layout.add_widget(self.hint_label)
@@ -2251,12 +2416,42 @@ class ChineseChallengeScreen(Screen):
         self.answers_layout.clear_widgets()
         self.level_label.text = '通关！'
         speak("恭喜你，全部通关了，汪汪队全员为你骄傲！")
+        
+        # 汪汪队庆祝效果
+        if PAW_PATROL_AVAILABLE:
+            try:
+                # 狗狗庆祝
+                create_puppy_celebration(self, Window.width / 2, Window.height / 2)
+                # 骨头雨
+                Clock.schedule_once(lambda dt: create_bone_rain(self, count=10), 0.5)
+                # 徽章爆炸
+                for i in range(3):
+                    Clock.schedule_once(
+                        lambda dt, x=random.randint(100, int(Window.width - 100)), y=random.randint(200, int(Window.height - 100)): 
+                        create_badge_burst(self, x, y, count=6), 
+                        1 + i * 0.5
+                    )
+            except:
+                pass
+        elif DECORATIONS_AVAILABLE:
+            try:
+                for i in range(3):
+                    Clock.schedule_once(
+                        lambda dt, x=random.randint(100, int(Window.width - 100)), y=random.randint(200, int(Window.height - 100)): 
+                        create_firework(self, x, y), 
+                        i * 0.5
+                    )
+                crown = CrownWidget(size_hint=(None, None), size=(dp(80), dp(60)), pos=(Window.width / 2 - dp(40), Window.height - dp(100)))
+                self.add_widget(crown)
+                animate_bounce(crown, height=20, duration=1)
+            except:
+                pass
 
 
 
 
 class ChineseWriteScreen(Screen):
-    """描红写字 - 让小朋友直接在汉字上描写（显示所有汉字）"""
+    """描红写字 - 毛毛主题（汪汪队消防狗）"""
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -2269,48 +2464,59 @@ class ChineseWriteScreen(Screen):
     def build_ui(self):
         layout = BoxLayout(orientation='vertical', padding=get_padding(), spacing=dp(10))
         
+        # 毛毛红色调背景
         with layout.canvas.before:
-            Color(*get_color_from_hex('#FFF8E1'))
+            Color(*get_color_from_hex('#FFEBEE'))  # 浅红色背景
             self.bg = Rectangle(pos=layout.pos, size=layout.size)
         layout.bind(pos=lambda i,v: setattr(self.bg, 'pos', v),
                    size=lambda i,v: setattr(self.bg, 'size', v))
         
-        # 导航栏
+        # 导航栏 - 毛毛红色主题
         nav = BoxLayout(size_hint=(1, 0.1))
         back_btn = Button(
             text='< 返回',
             size_hint=(0.12, 1),
             font_size=get_font_size(18),
-            background_color=get_color_from_hex('#FF9800'),
+            background_color=get_color_from_hex('#D32F2F'),  # 毛毛红
             background_normal=''
         )
         back_btn.bind(on_press=lambda x: setattr(self.manager, 'current', 'chinese_menu'))
         nav.add_widget(back_btn)
         
         nav.add_widget(Label(
-            text='【描红写字】',
+            text='跟毛毛学写字',
             font_size=get_font_size(28),
-            color=get_color_from_hex('#E65100'),
+            color=get_color_from_hex('#D32F2F'),
             bold=True,
-            size_hint=(0.4, 1)
+            size_hint=(0.28, 1)
         ))
+        
+        # 评分显示
+        self.score_label = Label(
+            text='',
+            font_size=get_font_size(18),
+            color=get_color_from_hex('#FF9800'),
+            bold=True,
+            size_hint=(0.12, 1)
+        )
+        nav.add_widget(self.score_label)
         
         # 朗读按钮
         speak_btn = Button(
             text='听',
             size_hint=(0.12, 1),
             font_size=get_font_size(18),
-            background_color=get_color_from_hex('#2196F3'),
+            background_color=get_color_from_hex('#EF5350'),
             background_normal=''
         )
         speak_btn.bind(on_press=self.speak_char)
         nav.add_widget(speak_btn)
         
         clear_btn = Button(
-            text='清除',
+            text='重写',
             size_hint=(0.12, 1),
             font_size=get_font_size(18),
-            background_color=get_color_from_hex('#F44336'),
+            background_color=get_color_from_hex('#FF7043'),
             background_normal=''
         )
         clear_btn.bind(on_press=self.clear_canvas)
@@ -2320,29 +2526,29 @@ class ChineseWriteScreen(Screen):
             text='换字',
             size_hint=(0.12, 1),
             font_size=get_font_size(18),
-            background_color=get_color_from_hex('#4CAF50'),
+            background_color=get_color_from_hex('#66BB6A'),
             background_normal=''
         )
         next_btn.bind(on_press=self.next_char)
         nav.add_widget(next_btn)
         
-        # 棒按钮（表扬）
-        praise_btn = Button(
-            text='棒!',
+        # 评分按钮（替代原来的棒按钮）
+        self.grade_btn = Button(
+            text='打分',
             size_hint=(0.12, 1),
             font_size=get_font_size(18),
-            background_color=get_color_from_hex('#FF5722'),
+            background_color=get_color_from_hex('#FFB300'),
             background_normal=''
         )
-        praise_btn.bind(on_press=lambda x: play_praise())
-        nav.add_widget(praise_btn)
+        self.grade_btn.bind(on_press=self.grade_writing)
+        nav.add_widget(self.grade_btn)
         
         layout.add_widget(nav)
         
         self.hint_label = Label(
-            text='用手指沿着红色的字描写吧！',
-            font_size=get_font_size(22),
-            color=get_color_from_hex('#666666'),
+            text='毛毛说：沿着红色的字描写，写完点打分！',
+            font_size=get_font_size(20),
+            color=get_color_from_hex('#D32F2F'),
             size_hint=(1, 0.05)
         )
         layout.add_widget(self.hint_label)
@@ -2496,22 +2702,108 @@ class ChineseWriteScreen(Screen):
         if self.all_chars:
             char = random.choice(self.all_chars)[0]
             self.select_char_by_name(char)
+            self.score_label.text = ''  # 清除评分
+    
+    def grade_writing(self, instance):
+        """评判写字质量 - 简单的覆盖率评分"""
+        if not self.write_canvas.lines:
+            self.score_label.text = '先写字哦'
+            speak('先写字再打分哦')
+            return
+        
+        # 计算评分
+        score = self.calculate_score()
+        
+        # 显示评分和反馈
+        if score >= 90:
+            self.score_label.text = '太棒了!'
+            self.score_label.color = get_color_from_hex('#4CAF50')
+            speak('哇，写得太棒了！毛毛给你点赞！')
             play_praise()
+            # 庆祝动画
+            self.show_celebration()
+        elif score >= 70:
+            self.score_label.text = '很好!'
+            self.score_label.color = get_color_from_hex('#8BC34A')
+            speak('写得很好！继续加油！')
+            play_praise()
+        elif score >= 50:
+            self.score_label.text = '不错'
+            self.score_label.color = get_color_from_hex('#FF9800')
+            speak('写得不错，再练练会更好！')
+        else:
+            self.score_label.text = '加油'
+            self.score_label.color = get_color_from_hex('#FF5722')
+            speak('没关系，再试一次吧！')
+            play_encourage()
+    
+    def calculate_score(self):
+        """计算写字评分 - 基于笔画覆盖率和位置"""
+        canvas = self.write_canvas
+        if not canvas.lines:
+            return 0
+        
+        # 获取画布中心区域（汉字所在区域）
+        cx, cy = canvas.center_x, canvas.center_y
+        char_area_size = min(canvas.width, canvas.height) * 0.7
+        
+        # 定义汉字区域边界
+        left = cx - char_area_size / 2
+        right = cx + char_area_size / 2
+        top = cy + char_area_size / 2
+        bottom = cy - char_area_size / 2
+        
+        # 统计在汉字区域内的点数
+        total_points = 0
+        inside_points = 0
+        
+        for line in canvas.lines:
+            for i in range(0, len(line) - 1, 2):
+                x, y = line[i], line[i + 1]
+                total_points += 1
+                if left <= x <= right and bottom <= y <= top:
+                    inside_points += 1
+        
+        if total_points == 0:
+            return 0
+        
+        # 基础分：在区域内的比例
+        coverage_score = (inside_points / total_points) * 100
+        
+        # 笔画数量加分（鼓励多写）
+        stroke_count = len(canvas.lines)
+        stroke_bonus = min(stroke_count * 5, 20)  # 最多加20分
+        
+        # 最终分数（限制在0-100）
+        final_score = min(100, coverage_score * 0.8 + stroke_bonus)
+        
+        return int(final_score)
+    
+    def show_celebration(self):
+        """显示庆祝动画"""
+        try:
+            # 在画布上方显示星星效果
+            for i in range(5):
+                x = self.write_canvas.center_x + random.randint(-100, 100)
+                y = self.write_canvas.center_y + random.randint(-50, 50)
+                animate_star_burst(self, x, y)
+        except:
+            pass
 
 
 class WriteCanvas(Widget):
-    """写字画布 - 汉字显示在中央，小朋友直接在上面描写"""
+    """写字画布 - 毛毛红色主题，汉字显示在中央"""
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.guide_char = '人'
         self.lines = []
         self.current_line = []
-        # 创建用于显示汉字的Label
+        # 创建用于显示汉字的Label - 毛毛红色
         self.char_label = Label(
             text='人',
             font_size=sp(200),
-            color=(1, 0.8, 0.8, 0.6),  # 浅红色半透明
+            color=(0.9, 0.3, 0.3, 0.5),  # 毛毛红色半透明
             halign='center',
             valign='middle'
         )
@@ -2538,8 +2830,8 @@ class WriteCanvas(Widget):
             Color(1, 1, 1, 1)
             Rectangle(pos=self.pos, size=self.size)
             
-            # 米字格（浅灰色）
-            Color(0.85, 0.85, 0.85, 1)
+            # 米字格（毛毛红色调）
+            Color(0.95, 0.8, 0.8, 1)  # 浅红色
             cx, cy = self.center_x, self.center_y
             w, h = self.width, self.height
             # 横线
@@ -2550,8 +2842,8 @@ class WriteCanvas(Widget):
             Line(points=[self.x, self.y, self.x + w, self.y + h], width=1)
             Line(points=[self.x, self.y + h, self.x + w, self.y], width=1)
             
-            # 边框（深一点）
-            Color(0.7, 0.7, 0.7, 1)
+            # 边框（毛毛红）
+            Color(0.83, 0.18, 0.18, 0.8)  # D32F2F
             Line(rectangle=(self.x + 2, self.y + 2, w - 4, h - 4), width=3)
         
         # 重绘用户笔迹
@@ -2782,20 +3074,23 @@ class ChineseStoryScreen(Screen):
     
     def build_ui(self):
         layout = BoxLayout(orientation='vertical', padding=get_padding(), spacing=dp(10))
+        
+        # 灰灰绿色背景
         with layout.canvas.before:
             Color(*get_color_from_hex('#E8F5E9'))
             self.bg = Rectangle(pos=layout.pos, size=layout.size)
         layout.bind(pos=lambda i,v: setattr(self.bg, 'pos', v), size=lambda i,v: setattr(self.bg, 'size', v))
         
+        # 导航栏 - 灰灰绿色主题
         nav = BoxLayout(size_hint=(1, 0.1))
-        back_btn = Button(text='< 返回', size_hint=(0.15, 1), font_size=get_font_size(18), background_color=get_color_from_hex('#66BB6A'), background_normal='')
+        back_btn = Button(text='< 返回', size_hint=(0.15, 1), font_size=get_font_size(18), background_color=get_color_from_hex('#43A047'), background_normal='')
         back_btn.bind(on_press=lambda x: setattr(self.manager, 'current', 'chinese_menu'))
         nav.add_widget(back_btn)
-        nav.add_widget(Label(text='【汉字故事】', font_size=get_font_size(28), color=get_color_from_hex('#2E7D32'), bold=True, size_hint=(0.4, 1)))
-        prev_btn = Button(text='<', size_hint=(0.1, 1), font_size=get_font_size(24), background_color=get_color_from_hex('#81C784'), background_normal='')
+        nav.add_widget(Label(text='跟灰灰听故事', font_size=get_font_size(28), color=get_color_from_hex('#2E7D32'), bold=True, size_hint=(0.4, 1)))
+        prev_btn = Button(text='<', size_hint=(0.1, 1), font_size=get_font_size(24), background_color=get_color_from_hex('#66BB6A'), background_normal='')
         prev_btn.bind(on_press=self.prev_char)
         nav.add_widget(prev_btn)
-        next_btn = Button(text='>', size_hint=(0.1, 1), font_size=get_font_size(24), background_color=get_color_from_hex('#81C784'), background_normal='')
+        next_btn = Button(text='>', size_hint=(0.1, 1), font_size=get_font_size(24), background_color=get_color_from_hex('#66BB6A'), background_normal='')
         next_btn.bind(on_press=self.next_char)
         nav.add_widget(next_btn)
         listen_btn = Button(text='听故事', size_hint=(0.15, 1), font_size=get_font_size(18), background_color=get_color_from_hex('#FF9800'), background_normal='')
@@ -2805,16 +3100,16 @@ class ChineseStoryScreen(Screen):
         
         content = BoxLayout(orientation='horizontal', size_hint=(1, 0.75), spacing=dp(20), padding=dp(10))
         left_box = BoxLayout(orientation='vertical', size_hint=(0.35, 1))
-        self.char_label = Label(text='人', font_size=get_font_size(180), color=get_color_from_hex('#2E7D32'), bold=True, size_hint=(1, 0.7))
+        self.char_label = Label(text='人', font_size=get_font_size(180), color=get_color_from_hex('#43A047'), bold=True, size_hint=(1, 0.7))
         left_box.add_widget(self.char_label)
         self.origin_label = Label(text='象形字', font_size=get_font_size(18), color=get_color_from_hex('#666666'), size_hint=(1, 0.3))
         left_box.add_widget(self.origin_label)
         content.add_widget(left_box)
         
         right_box = BoxLayout(orientation='vertical', size_hint=(0.65, 1), padding=dp(10))
-        self.title_label = Label(text='人 的故事', font_size=get_font_size(28), color=get_color_from_hex('#FF6B00'), bold=True, size_hint=(1, 0.15))
+        self.title_label = Label(text='人 的故事', font_size=get_font_size(28), color=get_color_from_hex('#43A047'), bold=True, size_hint=(1, 0.15))
         right_box.add_widget(self.title_label)
-        self.story_btn = Button(text='点击听故事...', font_size=get_font_size(24), background_color=get_color_from_hex('#FFF8E1'), background_normal='', color=get_color_from_hex('#333333'), size_hint=(1, 0.85), halign='center', valign='middle')
+        self.story_btn = Button(text='灰灰说：点击听故事...', font_size=get_font_size(24), background_color=get_color_from_hex('#E8F5E9'), background_normal='', color=get_color_from_hex('#333333'), size_hint=(1, 0.85), halign='center', valign='middle')
         self.story_btn.bind(on_press=self.speak_story)
         self.story_btn.bind(size=lambda *x: setattr(self.story_btn, 'text_size', (self.story_btn.width - dp(20), None)))
         right_box.add_widget(self.story_btn)
@@ -2823,7 +3118,7 @@ class ChineseStoryScreen(Screen):
         
         char_box = BoxLayout(size_hint=(1, 0.13), spacing=dp(8), padding=dp(5))
         for char in self.char_list:
-            btn = Button(text=char, font_size=get_font_size(28), background_color=get_color_from_hex('#A5D6A7'), background_normal='')
+            btn = Button(text=char, font_size=get_font_size(28), background_color=get_color_from_hex('#81C784'), background_normal='')
             btn.bind(on_press=self.select_char)
             char_box.add_widget(btn)
         layout.add_widget(char_box)
