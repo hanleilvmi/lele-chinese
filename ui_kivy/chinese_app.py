@@ -329,8 +329,8 @@ class ChineseMenuScreen(Screen):
         # 标题区域
         title_box = BoxLayout(size_hint=(1, 0.12))
         title_box.add_widget(Label(
-            text='🐕 乐乐的识字乐园 🐕',
-            font_size=get_font_size(38),
+            text='乐乐的识字乐园',
+            font_size=get_font_size(40),
             color=get_color_from_hex('#E65100'),
             bold=True
         ))
@@ -344,7 +344,7 @@ class ChineseMenuScreen(Screen):
             size_hint=(1, 0.06)
         ))
         
-        # 游戏选择区 - 使用更大的间距
+        # 游戏选择区 - 使用汉字图标（更可靠）
         games = GridLayout(
             cols=screen_adapter.get_grid_cols(), 
             spacing=screen_adapter.card_spacing(), 
@@ -352,15 +352,16 @@ class ChineseMenuScreen(Screen):
             padding=dp(15)
         )
         
+        # 使用汉字作为图标，避免Emoji显示问题
         game_list = [
-            ('📖', '学汉字', '认识基础汉字', '#FF7043', 'chinese_learn'),
-            ('✏️', '描红写字', '学写汉字', '#FF9800', 'chinese_write'),
-            ('📚', '汉字故事', '汉字的由来', '#66BB6A', 'chinese_story'),
-            ('🖼️', '看图选字', '看图片选汉字', '#4ECDC4', 'chinese_picture'),
-            ('❓', '汉字测验', '考考你学会了吗', '#42A5F5', 'chinese_quiz'),
-            ('🎯', '汉字配对', '找到相同的字', '#9C27B0', 'chinese_match'),
-            ('🔨', '打地鼠', '快速找汉字', '#FFD93D', 'chinese_whack'),
-            ('🏆', '闯关模式', '一关一关闯', '#E91E63', 'chinese_challenge'),
+            ('字', '学汉字', '认识基础汉字', '#FF7043', 'chinese_learn'),
+            ('写', '描红写字', '学写汉字', '#FF9800', 'chinese_write'),
+            ('事', '汉字故事', '汉字的由来', '#66BB6A', 'chinese_story'),
+            ('图', '看图选字', '看图片选汉字', '#4ECDC4', 'chinese_picture'),
+            ('问', '汉字测验', '考考你学会了吗', '#42A5F5', 'chinese_quiz'),
+            ('对', '汉字配对', '找到相同的字', '#9C27B0', 'chinese_match'),
+            ('锤', '打地鼠', '快速找汉字', '#FFD93D', 'chinese_whack'),
+            ('关', '闯关模式', '一关一关闯', '#E91E63', 'chinese_challenge'),
         ]
         
         for icon, title, desc, color, screen in game_list:
@@ -370,8 +371,8 @@ class ChineseMenuScreen(Screen):
                 size_hint_min=(dp(120), dp(100))  # 最小尺寸确保可点击
             )
             btn.markup = True
-            # 使用更大的字体
-            btn.text = f'[size={int(sp(48))}]{icon}[/size]\n[b][size={int(sp(22))}]{title}[/size][/b]\n[size={int(sp(14))}]{desc}[/size]'
+            # 使用更大的字体，汉字图标
+            btn.text = f'[size={int(sp(52))}]{icon}[/size]\n[b][size={int(sp(22))}]{title}[/size][/b]\n[size={int(sp(14))}]{desc}[/size]'
             btn.target_screen = screen
             btn.bind(on_press=self.go_screen)
             games.add_widget(btn)
@@ -381,7 +382,7 @@ class ChineseMenuScreen(Screen):
         # 底部信息
         bottom = BoxLayout(size_hint=(1, 0.08))
         bottom.add_widget(Label(
-            text='🐾 适合3-5岁小朋友 🐾',
+            text='适合3-5岁小朋友',
             font_size=get_font_size(16),
             color=get_color_from_hex('#999999')
         ))
@@ -391,8 +392,6 @@ class ChineseMenuScreen(Screen):
     
     def go_screen(self, instance):
         if hasattr(instance, 'target_screen'):
-            # 播放点击音效
-            speak(instance.target_screen.replace('chinese_', '').replace('_', ''))
             self.manager.current = instance.target_screen
 
 
@@ -418,7 +417,7 @@ class ChineseLearnScreen(Screen):
         # 导航栏 - 更大的返回按钮
         nav = BoxLayout(size_hint=(1, 0.12), spacing=dp(10))
         back_btn = Button(
-            text='◀ 返回',
+            text='< 返回',
             size_hint=(0.18, 1),
             font_size=get_font_size(20),
             background_color=get_color_from_hex('#FF7043'),
@@ -428,7 +427,7 @@ class ChineseLearnScreen(Screen):
         nav.add_widget(back_btn)
         
         nav.add_widget(Label(
-            text='📖 学汉字',
+            text='学汉字',
             font_size=get_font_size(30),
             color=get_color_from_hex('#E65100'),
             bold=True,
@@ -842,7 +841,7 @@ class ChineseQuizScreen(Screen):
         # 导航栏 - 更大的按钮
         nav = BoxLayout(size_hint=(1, 0.12), spacing=dp(10))
         back_btn = Button(
-            text='◀ 返回',
+            text='< 返回',
             size_hint=(0.18, 1),
             font_size=get_font_size(20),
             background_color=get_color_from_hex('#66BB6A'),
@@ -852,7 +851,7 @@ class ChineseQuizScreen(Screen):
         nav.add_widget(back_btn)
         
         nav.add_widget(Label(
-            text='❓ 汉字测验',
+            text='汉字测验',
             font_size=get_font_size(30),
             color=get_color_from_hex('#2E7D32'),
             bold=True,
@@ -860,7 +859,7 @@ class ChineseQuizScreen(Screen):
         ))
         
         self.score_label = Label(
-            text='⭐ 0',
+            text='得分: 0',
             font_size=get_font_size(22),
             color=get_color_from_hex('#FF6B6B'),
             size_hint=(0.18, 1)
@@ -887,7 +886,7 @@ class ChineseQuizScreen(Screen):
         
         # 播放按钮 - 更大更明显
         self.play_btn = Button(
-            text='🔊 点击听声音',
+            text='点击听声音',
             font_size=get_font_size(40),
             background_color=get_color_from_hex('#FF9800'),
             background_normal='',
@@ -916,7 +915,7 @@ class ChineseQuizScreen(Screen):
         
         # 开始按钮 - 更大
         self.start_btn = Button(
-            text='🎮 开始测验',
+            text='开始测验',
             font_size=get_font_size(26),
             size_hint=(1, 0.12),
             background_color=get_color_from_hex('#FF9800'),
@@ -929,9 +928,9 @@ class ChineseQuizScreen(Screen):
     
     def start_game(self, instance):
         self.session = self.logic.create_session(GameType.QUIZ, total_questions=10)
-        self.score_label.text = '⭐ 0'
+        self.score_label.text = '得分: 0'
         self.feedback_label.text = ''
-        self.start_btn.text = '🔄 重新开始'
+        self.start_btn.text = '重新开始'
         self.next_question()
     
     def play_sound(self, instance):
@@ -949,7 +948,7 @@ class ChineseQuizScreen(Screen):
         char, pinyin, word, emoji = self.current_word
         
         # 听声音选字模式
-        self.play_btn.text = '🔊 点击听声音'
+        self.play_btn.text = '点击听声音'
         self.question_label.text = '听声音，选出正确的汉字！'
         
         # 自动播放声音
@@ -985,17 +984,17 @@ class ChineseQuizScreen(Screen):
         is_correct = self.logic.check_answer(self.session, user_answer, correct_answer)
         
         if is_correct:
-            self.feedback_label.text = f'✅ 太棒了！就是 "{correct_answer}"'
+            self.feedback_label.text = f'太棒了！就是 "{correct_answer}"'
             self.feedback_label.color = get_color_from_hex('#4CAF50')
             instance.background_color = get_color_from_hex('#4CAF50')
             play_praise()  # 播放表扬
         else:
-            self.feedback_label.text = f'❌ 不对哦，是 "{correct_answer}"'
+            self.feedback_label.text = f'不对哦，是 "{correct_answer}"'
             self.feedback_label.color = get_color_from_hex('#F44336')
             instance.background_color = get_color_from_hex('#F44336')
             play_encourage()  # 播放鼓励
         
-        self.score_label.text = f'⭐ {self.session.score}'
+        self.score_label.text = f'得分: {self.session.score}'
         
         for btn in self.answers_layout.children:
             btn.disabled = True
