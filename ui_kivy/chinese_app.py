@@ -2,7 +2,7 @@
 """
 乐乐的识字乐园 - Android/鸿蒙平板优化版
 专为3-5岁儿童设计的汉字学习应用
-v1.3.2 - 移除Emoji，使用文字和动画增强趣味性
+v1.3.3 - 添加所有汉字故事，增加趣味装饰
 """
 import sys
 import os
@@ -306,6 +306,14 @@ except ImportError:
                 Color(0.9, 0.9, 0.9)
                 Rectangle(pos=self.pos, size=self.size)
 
+# 导入装饰模块
+try:
+    from decorations import StarWidget, HeartWidget, SunWidget, CloudWidget, FlowerWidget, PawPrintWidget, create_confetti_burst
+    DECORATIONS_AVAILABLE = True
+except ImportError:
+    DECORATIONS_AVAILABLE = False
+    print("[chinese_app] 装饰模块未找到，将不显示装饰")
+
 # 导入音频模块
 try:
     from audio_kivy import get_audio
@@ -447,8 +455,32 @@ class ChineseMenuScreen(Screen):
         
         self.add_widget(layout)
         
+        # 添加装饰元素
+        self.add_decorations()
+        
         # 启动入场动画
         Clock.schedule_once(self.start_entrance_animation, 0.3)
+    
+    def add_decorations(self):
+        """添加可爱的装饰元素"""
+        if not DECORATIONS_AVAILABLE:
+            return
+        
+        # 在角落添加装饰
+        decorations_config = [
+            (SunWidget, (dp(60), dp(60)), (dp(20), Window.height - dp(80))),
+            (CloudWidget, (dp(80), dp(50)), (Window.width - dp(100), Window.height - dp(70))),
+            (FlowerWidget, (dp(50), dp(50)), (dp(30), dp(30))),
+            (PawPrintWidget, (dp(45), dp(45)), (Window.width - dp(70), dp(40))),
+        ]
+        
+        for widget_class, size, pos in decorations_config:
+            try:
+                deco = widget_class(size_hint=(None, None), size=size, pos=pos)
+                deco.opacity = 0.7
+                self.add_widget(deco)
+            except:
+                pass
     
     def start_entrance_animation(self, dt):
         """入场动画 - 按钮依次弹出"""
@@ -1090,6 +1122,12 @@ class ChineseQuizScreen(Screen):
             # 答对动画
             animate_correct(instance)
             play_praise()  # 播放表扬
+            # 彩色纸屑效果
+            if DECORATIONS_AVAILABLE:
+                try:
+                    create_confetti_burst(self, instance.center_x, instance.center_y, count=12)
+                except:
+                    pass
         else:
             self.feedback_label.text = f'不对哦，是 "{correct_answer}"'
             self.feedback_label.color = get_color_from_hex('#F44336')
@@ -2580,7 +2618,9 @@ class WriteCanvas(Widget):
 
 
 class ChineseStoryScreen(Screen):
+    # 所有36个汉字的故事
     CHAR_STORIES = {
+        # === 基础汉字 (12个) ===
         '人': {
             'story': '很久很久以前，有一个聪明的古人想画一个人。他看到人站着的样子，两条腿稳稳地站在地上，身体微微弯曲。于是他画了一撇一捺，就像一个人侧着身子站立。从此，这个简单的符号就代表了人，一直用到今天！',
             'origin': '象形字，像人侧立的样子'
@@ -2628,6 +2668,108 @@ class ChineseStoryScreen(Screen):
         '石': {
             'story': '山脚下有一块大石头，硬硬的，沉沉的，搬都搬不动。古人画石头的时候，上面画一个山崖，下面画一块石头。石头可以盖房子，可以铺路，石头真有用！',
             'origin': '象形字，像山崖下的石头'
+        },
+        # === 进阶汉字 (12个) ===
+        '土': {
+            'story': '泥土软软的，黑黑的，小草从土里钻出来。古人画土的时候，画了一条横线代表地面，上面加一个土堆。土能种庄稼，土是大地妈妈的皮肤！',
+            'origin': '象形字，像地面上的土堆'
+        },
+        '大': {
+            'story': '小朋友，把手臂张开，腿分开站好，是不是像一个大字？古人画大的时候，就画了一个人张开手臂的样子，表示很大很大。',
+            'origin': '象形字，像人张开双臂'
+        },
+        '小': {
+            'story': '蚂蚁小小的，沙粒小小的。古人画小的时候，画了一个东西被分成很小的样子。小虽然小，但是小也很可爱！',
+            'origin': '指事字，表示细小分开'
+        },
+        '上': {
+            'story': '小鸟飞到树上，气球飞到天上。古人画上的时候，在一条线的上面加一个标记，表示在上面。',
+            'origin': '指事字，表示位置在高处'
+        },
+        '下': {
+            'story': '雨从天上落下来，树叶从树上飘下来。古人画下的时候，在一条线的下面加一个标记，表示在下面。',
+            'origin': '指事字，表示位置在低处'
+        },
+        '左': {
+            'story': '伸出你的两只手，拿筷子的那只手是右手，另一只就是左手。左边右边要分清，过马路先看左再看右！',
+            'origin': '会意字，表示左边的手'
+        },
+        '右': {
+            'story': '写字的时候用右手，吃饭的时候用右手，右手是我们的好帮手。右手真能干，帮我们做很多事！',
+            'origin': '会意字，表示右边的手'
+        },
+        '天': {
+            'story': '抬头看看，蓝蓝的天空好大好大，白云在天上飘，小鸟在天上飞。天空是小鸟的家，也是白云的游乐场！',
+            'origin': '指事字，人头顶上就是天'
+        },
+        '地': {
+            'story': '低头看看，我们站在大地上，大地像妈妈一样托着我们。大地上有花有草有树，大地妈妈真伟大！',
+            'origin': '形声字，土表意也表音'
+        },
+        '花': {
+            'story': '春天来了，花儿开了，红的黄的紫的，五颜六色真漂亮。花儿香香的，蝴蝶蜜蜂都爱它！',
+            'origin': '形声字，草字头表示植物'
+        },
+        '草': {
+            'story': '小草绿绿的，软软的，春风一吹就跳舞。小草虽然小，但是很坚强，野火烧不尽，春风吹又生！',
+            'origin': '象形字，像两棵小草'
+        },
+        '树': {
+            'story': '大树高高的，有粗粗的树干，有绿绿的树叶，小鸟在树上做窝。大树是小鸟的家，也给我们遮阳乘凉！',
+            'origin': '形声字，木表示植物'
+        },
+        '鸟': {
+            'story': '小鸟叽叽喳喳唱歌，扑棱扑棱翅膀飞。小鸟会飞真厉害，飞到南方过冬天，飞到北方过夏天！',
+            'origin': '象形字，像一只小鸟'
+        },
+        # === 高级汉字 (12个) ===
+        '爸': {
+            'story': '爸爸高高的，壮壮的，是家里的大树。爸爸工作很辛苦，爸爸的肩膀最宽厚，我爱我的好爸爸！',
+            'origin': '形声字，父表意巴表音'
+        },
+        '妈': {
+            'story': '妈妈温柔又美丽，每天照顾我们。妈妈的怀抱最温暖，妈妈做的饭最好吃，我爱我的好妈妈！',
+            'origin': '形声字，女表意马表音'
+        },
+        '爷': {
+            'story': '爷爷的胡子白白的，笑起来眼睛眯成一条线。爷爷会讲好多故事，爷爷会做好玩的玩具，爷爷最疼我！',
+            'origin': '形声字，父表意耶表音'
+        },
+        '奶': {
+            'story': '奶奶的手软软的，做的饼干香香的。奶奶会织毛衣，奶奶会唱童谣，奶奶的故事最好听！',
+            'origin': '形声字，女表意乃表音'
+        },
+        '哥': {
+            'story': '哥哥比我大，会保护我，会带我玩。哥哥教我骑车，哥哥帮我拿东西，哥哥真好！',
+            'origin': '会意字，表示可亲的兄长'
+        },
+        '姐': {
+            'story': '姐姐比我大，会梳漂亮的辫子，会讲好听的故事。姐姐教我画画，姐姐陪我做游戏，姐姐像小妈妈！',
+            'origin': '形声字，女表意且表音'
+        },
+        '弟': {
+            'story': '弟弟比我小，跟在我后面跑，学我说话学我笑。弟弟虽然小，但是很可爱！',
+            'origin': '象形字，表示次序排列'
+        },
+        '妹': {
+            'story': '妹妹小小的，眼睛大大的，笑起来甜甜的。妹妹爱撒娇，妹妹爱跟我玩，我要保护妹妹！',
+            'origin': '形声字，女表意未表音'
+        },
+        '吃': {
+            'story': '肚子饿了要吃饭，吃饱了才有力气玩。吃饭要细嚼慢咽，不挑食身体才棒棒！',
+            'origin': '形声字，口表意乞表音'
+        },
+        '喝': {
+            'story': '渴了要喝水，喝水身体好。多喝水皮肤好，多喝水不生病，喝水真重要！',
+            'origin': '形声字，口表意曷表音'
+        },
+        '看': {
+            'story': '眼睛睁得大大的，就是在看东西。看书学知识，看风景心情好，眼睛要保护好！',
+            'origin': '会意字，手遮眼睛看远方'
+        },
+        '听': {
+            'story': '竖起耳朵仔细听，就能听到好多声音。听妈妈讲故事，听小鸟唱歌，耳朵真有用！',
+            'origin': '形声字，耳朵用来听声音'
         },
     }
     
