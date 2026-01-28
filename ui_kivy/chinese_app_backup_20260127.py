@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-乐乐的识字乐园 - Android/鸿蒙平板优化版
+乐乐的识字乐园 - Android平板优化版
 专为3-5岁儿童设计的汉字学习应用
-v1.3.2 - 移除Emoji，使用文字和动画增强趣味性
 """
 import sys
 import os
@@ -15,9 +14,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # 必须在导入kivy之前配置字体
 try:
     import font_config
-    print("[chinese_app] 字体配置模块已加载")
-except ImportError as e:
-    print(f"[chinese_app] 字体配置导入失败: {e}")
+except ImportError:
+    # 如果导入失败，手动配置字体
+    pass
 
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
@@ -33,238 +32,28 @@ from kivy.utils import platform, get_color_from_hex
 from kivy.clock import Clock
 from kivy.metrics import dp, sp
 from kivy.core.text import LabelBase
-from kivy.animation import Animation  # 添加动画支持
 import random
 
-
-# ============================================================
-# 屏幕适配配置
-# ============================================================
-class ScreenAdapter:
-    """屏幕适配器 - 根据设备自动调整UI"""
-    
-    # 设计基准（1280x800平板）
-    BASE_WIDTH = 1280
-    BASE_HEIGHT = 800
-    
-    # 儿童触摸优化：最小触摸区域（dp）
-    MIN_TOUCH_SIZE = 60  # 至少60dp，适合3-5岁儿童
-    MIN_BUTTON_HEIGHT = 70  # 按钮最小高度
-    
-    _instance = None
-    
-    @classmethod
-    def get(cls):
-        if cls._instance is None:
-            cls._instance = cls()
-        return cls._instance
-    
-    def __init__(self):
-        self.update()
-    
-    def update(self):
-        """更新屏幕信息"""
-        self.width = Window.width
-        self.height = Window.height
-        self.ratio = self.width / self.height if self.height > 0 else 1.6
-        
-        # 计算缩放因子
-        self.scale_x = self.width / self.BASE_WIDTH
-        self.scale_y = self.height / self.BASE_HEIGHT
-        self.scale = min(self.scale_x, self.scale_y)
-        
-        print(f"[ScreenAdapter] 屏幕: {self.width}x{self.height}, 比例: {self.ratio:.2f}, 缩放: {self.scale:.2f}")
-    
-    def get_grid_cols(self):
-        """根据屏幕宽度决定网格列数"""
-        if self.ratio > 1.7:  # 超宽屏 (如2560x1440)
-            return 4
-        elif self.ratio > 1.4:  # 标准平板 (如1280x800)
-            return 4
-        else:  # 接近正方形
-            return 3
-    
-    def get_card_cols(self):
-        """汉字卡片列数"""
-        if self.width >= 1920:
-            return 5
-        elif self.width >= 1280:
-            return 4
-        else:
-            return 3
-    
-    def font_size(self, base):
-        """自适应字体大小"""
-        scaled = base * max(0.8, min(1.3, self.scale))
-        return sp(max(12, scaled))  # 最小12sp
-    
-    def button_height(self):
-        """按钮高度（适合儿童触摸）"""
-        return dp(max(self.MIN_BUTTON_HEIGHT, 80 * self.scale))
-    
-    def touch_size(self):
-        """最小触摸区域"""
-        return dp(max(self.MIN_TOUCH_SIZE, 60 * self.scale))
-    
-    def padding(self):
-        """内边距"""
-        return dp(max(10, 15 * self.scale))
-    
-    def spacing(self):
-        """间距"""
-        return dp(max(10, 15 * self.scale))
-    
-    def card_spacing(self):
-        """卡片间距（大一点方便点击）"""
-        return dp(max(15, 20 * self.scale))
-
-
-# 全局屏幕适配器
-screen_adapter = ScreenAdapter.get()
-
-
-# ============================================================
-# 儿童友好的UI组件
-# ============================================================
-class ChildFriendlyButton(Button):
-    """儿童友好按钮 - 大触摸区域、圆角、反馈明显"""
-    
-    def __init__(self, text='', icon='', color='#4CAF50', **kwargs):
-        super().__init__(**kwargs)
-        self.background_normal = ''
-        self.background_color = get_color_from_hex(color)
-        self.markup = True
-        self.halign = 'center'
-        self.valign = 'middle'
-        
-        # 设置最小尺寸
-        self.size_hint_min = (dp(80), dp(60))
-        
-        # 构建文本
-        if icon and text:
-            self.text = f'[size={int(sp(36))}]{icon}[/size]\n[b]{text}[/b]'
-        elif icon:
-            self.text = f'[size={int(sp(42))}]{icon}[/size]'
-        else:
-            self.text = f'[b]{text}[/b]'
-        
-        self.font_size = sp(18)
-    
-    def on_press(self):
-        """按下时的视觉反馈"""
-        self.opacity = 0.7
-    
-    def on_release(self):
-        """释放时恢复"""
-        self.opacity = 1.0
-
-
-# ============================================================
-# 动画效果辅助函数
-# ============================================================
-def animate_correct(widget):
-    """答对动画 - 放大弹跳 + 变绿"""
-    widget.background_color = get_color_from_hex('#4CAF50')
-    anim = Animation(scale=1.2, duration=0.15) + Animation(scale=1.0, duration=0.15, t='out_bounce')
-    anim.start(widget)
-
-def animate_wrong(widget):
-    """答错动画 - 左右摇晃 + 变红"""
-    widget.background_color = get_color_from_hex('#F44336')
-    # 摇晃效果
-    original_x = widget.x
-    anim = (Animation(x=original_x - dp(10), duration=0.05) + 
-            Animation(x=original_x + dp(10), duration=0.1) + 
-            Animation(x=original_x - dp(10), duration=0.1) + 
-            Animation(x=original_x, duration=0.05))
-    anim.start(widget)
-
-def animate_bounce(widget):
-    """弹跳动画"""
-    anim = Animation(scale=1.15, duration=0.1) + Animation(scale=1.0, duration=0.1, t='out_bounce')
-    anim.start(widget)
-
-def animate_pulse(widget, color1='#FF6B6B', color2='#FFD93D'):
-    """脉冲闪烁动画"""
-    def pulse(dt):
-        if hasattr(widget, '_pulse_state'):
-            widget._pulse_state = not widget._pulse_state
-        else:
-            widget._pulse_state = True
-        widget.background_color = get_color_from_hex(color1 if widget._pulse_state else color2)
-    
-    Clock.schedule_interval(pulse, 0.5)
-    return pulse  # 返回以便取消
-
-def animate_star_burst(parent_widget, x, y):
-    """星星爆炸效果 - 答对时显示（使用彩色圆点代替emoji）"""
-    colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#FF9800', '#E91E63']
-    for i in range(5):
-        # 创建彩色圆点作为星星效果
-        star = Label(
-            text='★',  # 使用文字星号
-            font_size=sp(30),
-            pos=(x, y),
-            size_hint=(None, None),
-            size=(dp(40), dp(40)),
-            color=get_color_from_hex(random.choice(colors))
-        )
-        parent_widget.add_widget(star)
-        
-        # 随机方向飞出
-        end_x = x + random.randint(-100, 100)
-        end_y = y + random.randint(50, 150)
-        
-        anim = Animation(
-            pos=(end_x, end_y), 
-            opacity=0, 
-            font_size=sp(10),
-            duration=0.8,
-            t='out_quad'
-        )
-        anim.bind(on_complete=lambda a, w: parent_widget.remove_widget(w))
-        anim.start(star)
-
-
-class BigCharButton(Button):
-    """大汉字按钮 - 用于选择题选项"""
-    
-    def __init__(self, char='', color='#FF6B6B', **kwargs):
-        super().__init__(**kwargs)
-        self.background_normal = ''
-        self.background_color = get_color_from_hex(color)
-        self.text = char
-        self.font_size = sp(48)  # 大字体
-        self.bold = True
-        
-        # 确保足够大的触摸区域
-        self.size_hint_min = (dp(100), dp(100))
-    
-    def on_press(self):
-        self.opacity = 0.7
-    
-    def on_release(self):
-        self.opacity = 1.0
-
-
-# 配置中文字体（后备方案）
+# 配置中文字体
 def setup_font():
     """配置中文字体"""
     font_paths = []
     if platform == 'android':
         # Android和鸿蒙系统的字体路径
         font_paths = [
-            # 鸿蒙系统字体（优先）
-            "/system/fonts/HarmonyOS_Sans_SC_Regular.ttf",
-            "/system/fonts/HarmonyOS_Sans_SC.ttf",
-            "/system/fonts/HarmonyOSSans-Regular.ttf",
-            # 华为设备字体
-            "/system/fonts/HwChinese-Regular.ttf",
             # 标准Android字体
             "/system/fonts/NotoSansCJK-Regular.ttc",
             "/system/fonts/DroidSansFallback.ttf",
             "/system/fonts/NotoSansSC-Regular.otf",
+            "/system/fonts/NotoSansHans-Regular.otf",
+            # 鸿蒙系统字体
+            "/system/fonts/HarmonyOS_Sans_SC_Regular.ttf",
+            "/system/fonts/HarmonyOS_Sans_SC.ttf",
+            "/system/fonts/HarmonyOSSans-Regular.ttf",
             "/system/fonts/DroidSansChinese.ttf",
+            # 华为设备字体
+            "/system/fonts/HwChinese-Regular.ttf",
+            "/system/fonts/Roboto-Regular.ttf",
         ]
     else:
         font_paths = [
@@ -276,12 +65,13 @@ def setup_font():
         if os.path.exists(path):
             try:
                 LabelBase.register(name='Roboto', fn_regular=path)
-                print(f"[chinese_app] 已加载字体: {path}")
+                print(f"已加载字体: {path}")
                 return True
             except:
                 pass
     
-    print("[chinese_app] 警告: 未找到中文字体，使用系统默认")
+    # 如果都找不到，尝试不指定字体（使用系统默认）
+    print("警告: 未找到中文字体，使用系统默认")
     return False
 
 setup_font()
@@ -349,28 +139,23 @@ def play_encourage():
 
 def get_font_size(base_size):
     """根据屏幕大小动态计算字体大小"""
-    return screen_adapter.font_size(base_size)
+    return sp(base_size)
 
 
 def get_padding():
     """根据屏幕大小动态计算内边距"""
-    return screen_adapter.padding()
-
-
-def get_spacing():
-    """根据屏幕大小动态计算间距"""
-    return screen_adapter.spacing()
+    return dp(15)
 
 
 class ChineseMenuScreen(Screen):
-    """识字乐园主菜单 - 儿童触摸优化"""
+    """识字乐园主菜单 - 平板优化"""
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.build_ui()
     
     def build_ui(self):
-        layout = BoxLayout(orientation='vertical', padding=get_padding(), spacing=get_spacing())
+        layout = BoxLayout(orientation='vertical', padding=get_padding(), spacing=dp(15))
         
         with layout.canvas.before:
             Color(*get_color_from_hex('#FFF8E1'))
@@ -378,126 +163,67 @@ class ChineseMenuScreen(Screen):
         layout.bind(pos=lambda i,v: setattr(self.bg, 'pos', v),
                    size=lambda i,v: setattr(self.bg, 'size', v))
         
-        # 标题区域 - 带动画的标题
-        title_box = BoxLayout(size_hint=(1, 0.12))
-        self.title_label = Label(
+        # 标题区域
+        title_box = BoxLayout(size_hint=(1, 0.15))
+        title_box.add_widget(Label(
             text='乐乐的识字乐园',
-            font_size=get_font_size(42),
+            font_size=get_font_size(36),
             color=get_color_from_hex('#E65100'),
             bold=True
-        )
-        title_box.add_widget(self.title_label)
+        ))
         layout.add_widget(title_box)
         
         # 副标题
-        self.subtitle = Label(
+        layout.add_widget(Label(
             text='点击下面的游戏开始学习汉字吧！',
-            font_size=get_font_size(20),
+            font_size=get_font_size(18),
             color=get_color_from_hex('#666666'),
-            size_hint=(1, 0.06)
-        )
-        layout.add_widget(self.subtitle)
+            size_hint=(1, 0.08)
+        ))
         
-        # 游戏选择区 - 4列2行，排版整齐
-        self.games_grid = GridLayout(
-            cols=4,  # 固定4列，8个模块正好2行
-            spacing=screen_adapter.card_spacing(), 
-            size_hint=(1, 0.70), 
-            padding=dp(15)
-        )
+        # 游戏选择区 - 3列布局更均匀
+        games = GridLayout(cols=3, spacing=dp(15), size_hint=(1, 0.65), padding=dp(20))
         
-        # 使用大汉字作为图标，配合颜色更醒目
         game_list = [
-            ('学', '学汉字', '认识基础汉字', '#FF7043', 'chinese_learn'),
-            ('写', '描红写字', '学写汉字', '#FF9800', 'chinese_write'),
-            ('故', '汉字故事', '汉字的由来', '#66BB6A', 'chinese_story'),
+            ('字', '学汉字', '认识基础汉字', '#FF7043', 'chinese_learn'),
             ('图', '看图选字', '看图片选汉字', '#4ECDC4', 'chinese_picture'),
-            ('考', '汉字测验', '考考你学会了吗', '#42A5F5', 'chinese_quiz'),
-            ('配', '汉字配对', '找到相同的字', '#9C27B0', 'chinese_match'),
-            ('打', '打地鼠', '快速找汉字', '#FFD93D', 'chinese_whack'),
-            ('闯', '闯关模式', '一关一关闯', '#E91E63', 'chinese_challenge'),
+            ('?', '汉字测验', '考考你学会了吗', '#66BB6A', 'chinese_quiz'),
+            ('对', '汉字配对', '找到相同的字', '#42A5F5', 'chinese_match'),
+            ('锤', '打地鼠', '快速找汉字', '#FFD93D', 'chinese_whack'),
+            ('关', '闯关模式', '一关一关闯', '#9C27B0', 'chinese_challenge'),
         ]
         
-        self.game_buttons = []
         for icon, title, desc, color, screen in game_list:
             btn = Button(
                 background_normal='',
-                background_color=get_color_from_hex(color),
-                size_hint_min=(dp(120), dp(100))
+                background_color=get_color_from_hex(color)
             )
             btn.markup = True
-            btn.text = f'[size={int(sp(48))}]{icon}[/size]\n[b][size={int(sp(20))}]{title}[/size][/b]\n[size={int(sp(13))}]{desc}[/size]'
+            btn.text = f'[size={int(sp(42))}]{icon}[/size]\n[b][size={int(sp(20))}]{title}[/size][/b]\n[size={int(sp(12))}]{desc}[/size]'
             btn.target_screen = screen
-            btn.original_color = get_color_from_hex(color)
-            btn.bind(on_press=self.on_button_press)
-            btn.bind(on_release=self.on_button_release)
-            self.games_grid.add_widget(btn)
-            self.game_buttons.append(btn)
+            btn.bind(on_press=self.go_screen)
+            games.add_widget(btn)
         
-        layout.add_widget(self.games_grid)
+        layout.add_widget(games)
         
         # 底部信息
-        bottom = BoxLayout(size_hint=(1, 0.08))
+        bottom = BoxLayout(size_hint=(1, 0.1))
         bottom.add_widget(Label(
-            text='~ 适合3-5岁小朋友 ~',
-            font_size=get_font_size(16),
+            text='适合3-5岁小朋友',
+            font_size=get_font_size(14),
             color=get_color_from_hex('#999999')
         ))
         layout.add_widget(bottom)
         
         self.add_widget(layout)
-        
-        # 启动入场动画
-        Clock.schedule_once(self.start_entrance_animation, 0.3)
     
-    def start_entrance_animation(self, dt):
-        """入场动画 - 按钮依次弹出"""
-        for i, btn in enumerate(self.game_buttons):
-            btn.opacity = 0
-            btn.scale = 0.5
-            # 延迟动画，产生波浪效果
-            anim = Animation(opacity=1, duration=0.3)
-            anim &= Animation(scale=1, duration=0.3, t='out_back')
-            Clock.schedule_once(lambda dt, b=btn, a=anim: a.start(b), i * 0.08)
-    
-    def on_button_press(self, instance):
-        """按钮按下动画"""
-        # 缩小效果
-        anim = Animation(scale=0.9, duration=0.1)
-        anim.start(instance)
-        # 变暗
-        instance.opacity = 0.8
-    
-    def on_button_release(self, instance):
-        """按钮释放动画"""
-        # 恢复大小
-        anim = Animation(scale=1, duration=0.1, t='out_back')
-        anim.start(instance)
-        instance.opacity = 1
-        # 跳转页面
+    def go_screen(self, instance):
         if hasattr(instance, 'target_screen'):
             self.manager.current = instance.target_screen
-    
-    def on_enter(self):
-        """进入页面时的动画"""
-        # 标题闪烁动画
-        self.animate_title()
-    
-    def animate_title(self):
-        """标题颜色动画"""
-        colors = ['#E65100', '#FF5722', '#FF9800', '#FFC107']
-        
-        def change_color(dt):
-            if hasattr(self, 'title_label'):
-                color = random.choice(colors)
-                self.title_label.color = get_color_from_hex(color)
-        
-        # 每2秒变换一次颜色
-        Clock.schedule_interval(change_color, 2)
 
 
 class ChineseLearnScreen(Screen):
-    """学汉字 - 卡片学习模式（分页）- 触摸优化"""
+    """学汉字 - 卡片学习模式（分页）"""
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -507,7 +233,7 @@ class ChineseLearnScreen(Screen):
         self.build_ui()
     
     def build_ui(self):
-        layout = BoxLayout(orientation='vertical', padding=get_padding(), spacing=get_spacing())
+        layout = BoxLayout(orientation='vertical', padding=get_padding(), spacing=dp(10))
         
         with layout.canvas.before:
             Color(*get_color_from_hex('#FFF3E0'))
@@ -515,12 +241,12 @@ class ChineseLearnScreen(Screen):
         layout.bind(pos=lambda i,v: setattr(self.bg, 'pos', v),
                    size=lambda i,v: setattr(self.bg, 'size', v))
         
-        # 导航栏 - 更大的返回按钮
-        nav = BoxLayout(size_hint=(1, 0.12), spacing=dp(10))
+        # 导航栏
+        nav = BoxLayout(size_hint=(1, 0.1))
         back_btn = Button(
             text='< 返回',
-            size_hint=(0.18, 1),
-            font_size=get_font_size(20),
+            size_hint=(0.15, 1),
+            font_size=get_font_size(18),
             background_color=get_color_from_hex('#FF7043'),
             background_normal=''
         )
@@ -528,15 +254,15 @@ class ChineseLearnScreen(Screen):
         nav.add_widget(back_btn)
         
         nav.add_widget(Label(
-            text='学汉字',
-            font_size=get_font_size(30),
+            text='【学汉字】',
+            font_size=get_font_size(28),
             color=get_color_from_hex('#E65100'),
             bold=True,
-            size_hint=(0.47, 1)
+            size_hint=(0.5, 1)
         ))
         
-        # 难度选择 - 更大的按钮
-        level_box = BoxLayout(size_hint=(0.35, 1), spacing=dp(8))
+        # 难度选择
+        level_box = BoxLayout(size_hint=(0.35, 1), spacing=dp(5))
         for lv, text in [(1, '初级'), (2, '中级'), (3, '高级')]:
             btn = Button(
                 text=text,
@@ -921,7 +647,7 @@ class ChineseDetailScreen(Screen):
 
 
 class ChineseQuizScreen(Screen):
-    """汉字测验 - 选择题模式 - 触摸优化"""
+    """汉字测验 - 选择题模式"""
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -931,7 +657,7 @@ class ChineseQuizScreen(Screen):
         self.build_ui()
     
     def build_ui(self):
-        layout = BoxLayout(orientation='vertical', padding=get_padding(), spacing=get_spacing())
+        layout = BoxLayout(orientation='vertical', padding=get_padding(), spacing=dp(15))
         
         with layout.canvas.before:
             Color(*get_color_from_hex('#E8F5E9'))
@@ -939,12 +665,12 @@ class ChineseQuizScreen(Screen):
         layout.bind(pos=lambda i,v: setattr(self.bg, 'pos', v),
                    size=lambda i,v: setattr(self.bg, 'size', v))
         
-        # 导航栏 - 更大的按钮
-        nav = BoxLayout(size_hint=(1, 0.12), spacing=dp(10))
+        # 导航栏
+        nav = BoxLayout(size_hint=(1, 0.1))
         back_btn = Button(
             text='< 返回',
-            size_hint=(0.18, 1),
-            font_size=get_font_size(20),
+            size_hint=(0.15, 1),
+            font_size=get_font_size(18),
             background_color=get_color_from_hex('#66BB6A'),
             background_normal=''
         )
@@ -952,26 +678,26 @@ class ChineseQuizScreen(Screen):
         nav.add_widget(back_btn)
         
         nav.add_widget(Label(
-            text='汉字测验',
-            font_size=get_font_size(30),
+            text='【汉字测验】',
+            font_size=get_font_size(28),
             color=get_color_from_hex('#2E7D32'),
             bold=True,
-            size_hint=(0.47, 1)
+            size_hint=(0.5, 1)
         ))
         
         self.score_label = Label(
             text='得分: 0',
-            font_size=get_font_size(22),
+            font_size=get_font_size(20),
             color=get_color_from_hex('#FF6B6B'),
-            size_hint=(0.18, 1)
+            size_hint=(0.2, 1)
         )
         nav.add_widget(self.score_label)
         
         self.progress_label = Label(
             text='0/10',
-            font_size=get_font_size(20),
+            font_size=get_font_size(18),
             color=get_color_from_hex('#666666'),
-            size_hint=(0.17, 1)
+            size_hint=(0.15, 1)
         )
         nav.add_widget(self.progress_label)
         layout.add_widget(nav)
@@ -979,19 +705,19 @@ class ChineseQuizScreen(Screen):
         # 题目提示
         self.question_label = Label(
             text='听声音，选汉字！',
-            font_size=get_font_size(26),
+            font_size=get_font_size(24),
             color=get_color_from_hex('#333333'),
-            size_hint=(1, 0.08)
+            size_hint=(1, 0.1)
         )
         layout.add_widget(self.question_label)
         
-        # 播放按钮 - 更大更明显
+        # 播放按钮（替代词组显示）
         self.play_btn = Button(
             text='点击听声音',
-            font_size=get_font_size(40),
+            font_size=get_font_size(36),
             background_color=get_color_from_hex('#FF9800'),
             background_normal='',
-            size_hint=(1, 0.28)
+            size_hint=(1, 0.35)
         )
         self.play_btn.bind(on_press=self.play_sound)
         layout.add_widget(self.play_btn)
@@ -999,26 +725,26 @@ class ChineseQuizScreen(Screen):
         # 反馈
         self.feedback_label = Label(
             text='',
-            font_size=get_font_size(26),
+            font_size=get_font_size(24),
             color=get_color_from_hex('#4CAF50'),
-            size_hint=(1, 0.08)
+            size_hint=(1, 0.1)
         )
         layout.add_widget(self.feedback_label)
         
-        # 答案按钮 - 大按钮便于儿童触摸
+        # 答案按钮 - 大按钮便于触摸
         self.answers_layout = GridLayout(
             cols=2,
-            spacing=screen_adapter.card_spacing(),  # 更大间距
-            padding=dp(15),
-            size_hint=(1, 0.32)
+            spacing=dp(15),
+            padding=dp(20),
+            size_hint=(1, 0.25)
         )
         layout.add_widget(self.answers_layout)
         
-        # 开始按钮 - 更大
+        # 开始按钮
         self.start_btn = Button(
             text='开始测验',
-            font_size=get_font_size(26),
-            size_hint=(1, 0.12),
+            font_size=get_font_size(24),
+            size_hint=(1, 0.1),
             background_color=get_color_from_hex('#FF9800'),
             background_normal=''
         )
@@ -1055,7 +781,7 @@ class ChineseQuizScreen(Screen):
         # 自动播放声音
         Clock.schedule_once(lambda dt: speak(char), 0.5)
         
-        # 生成汉字选项 - 使用更大的按钮
+        # 生成汉字选项
         self.answers_layout.clear_widgets()
         all_chars = [w[0] for w in words]
         options = self.logic.get_random_options(char, all_chars, count=4)
@@ -1064,11 +790,10 @@ class ChineseQuizScreen(Screen):
         for i, opt in enumerate(options):
             btn = Button(
                 text=opt,
-                font_size=get_font_size(64),  # 更大的字体
+                font_size=get_font_size(56),
                 background_color=get_color_from_hex(colors[i]),
                 background_normal='',
-                bold=True,
-                size_hint_min=(dp(120), dp(80))  # 最小尺寸
+                bold=True
             )
             btn.bind(on_press=self.on_answer)
             self.answers_layout.add_widget(btn)
@@ -1085,19 +810,17 @@ class ChineseQuizScreen(Screen):
         is_correct = self.logic.check_answer(self.session, user_answer, correct_answer)
         
         if is_correct:
-            self.feedback_label.text = f'太棒了！就是 "{correct_answer}" ★'
+            self.feedback_label.text = f'太棒了！就是 "{correct_answer}"'
             self.feedback_label.color = get_color_from_hex('#4CAF50')
-            # 答对动画
-            animate_correct(instance)
+            instance.background_color = get_color_from_hex('#4CAF50')
             play_praise()  # 播放表扬
         else:
             self.feedback_label.text = f'不对哦，是 "{correct_answer}"'
             self.feedback_label.color = get_color_from_hex('#F44336')
-            # 答错动画
-            animate_wrong(instance)
+            instance.background_color = get_color_from_hex('#F44336')
             play_encourage()  # 播放鼓励
         
-        self.score_label.text = f'★ {self.session.score}'
+        self.score_label.text = f'得分: {self.session.score}'
         
         for btn in self.answers_layout.children:
             btn.disabled = True
@@ -2204,9 +1927,9 @@ class ChineseChallengeScreen(Screen):
     
     def game_complete(self):
         """全部通关 - 显示收集的所有狗狗"""
-        self.hint_label.text = '【冠军】恭喜通关！你太厉害了！'
+        self.hint_label.text = '🏆 恭喜通关！你太厉害了！🏆'
         self.char_label.text = '冠军'
-        self.stars_label.text = '★ ★ ★'
+        self.stars_label.text = '🌟 🌟 🌟'
         self.question_label.text = f'总得分: {self.total_score}'
         self.feedback_label.text = f'收集了 {len(self.unlocked_puppies)} 只狗狗！'
         self.feedback_label.color = get_color_from_hex('#FFD700')
@@ -2215,526 +1938,16 @@ class ChineseChallengeScreen(Screen):
         speak("恭喜你，全部通关了，汪汪队全员为你骄傲！")
 
 
-
-
-class ChineseWriteScreen(Screen):
-    """描红写字 - 让小朋友直接在汉字上描写（显示所有汉字）"""
-    
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.current_char = None
-        self.current_page = 0
-        self.chars_per_page = 12  # 每页12个字（2行x6列）
-        self.all_chars = []  # 所有汉字列表
-        self.build_ui()
-    
-    def build_ui(self):
-        layout = BoxLayout(orientation='vertical', padding=get_padding(), spacing=dp(10))
-        
-        with layout.canvas.before:
-            Color(*get_color_from_hex('#FFF8E1'))
-            self.bg = Rectangle(pos=layout.pos, size=layout.size)
-        layout.bind(pos=lambda i,v: setattr(self.bg, 'pos', v),
-                   size=lambda i,v: setattr(self.bg, 'size', v))
-        
-        # 导航栏
-        nav = BoxLayout(size_hint=(1, 0.1))
-        back_btn = Button(
-            text='< 返回',
-            size_hint=(0.12, 1),
-            font_size=get_font_size(18),
-            background_color=get_color_from_hex('#FF9800'),
-            background_normal=''
-        )
-        back_btn.bind(on_press=lambda x: setattr(self.manager, 'current', 'chinese_menu'))
-        nav.add_widget(back_btn)
-        
-        nav.add_widget(Label(
-            text='【描红写字】',
-            font_size=get_font_size(28),
-            color=get_color_from_hex('#E65100'),
-            bold=True,
-            size_hint=(0.4, 1)
-        ))
-        
-        # 朗读按钮
-        speak_btn = Button(
-            text='听',
-            size_hint=(0.12, 1),
-            font_size=get_font_size(18),
-            background_color=get_color_from_hex('#2196F3'),
-            background_normal=''
-        )
-        speak_btn.bind(on_press=self.speak_char)
-        nav.add_widget(speak_btn)
-        
-        clear_btn = Button(
-            text='清除',
-            size_hint=(0.12, 1),
-            font_size=get_font_size(18),
-            background_color=get_color_from_hex('#F44336'),
-            background_normal=''
-        )
-        clear_btn.bind(on_press=self.clear_canvas)
-        nav.add_widget(clear_btn)
-        
-        next_btn = Button(
-            text='换字',
-            size_hint=(0.12, 1),
-            font_size=get_font_size(18),
-            background_color=get_color_from_hex('#4CAF50'),
-            background_normal=''
-        )
-        next_btn.bind(on_press=self.next_char)
-        nav.add_widget(next_btn)
-        
-        # 棒按钮（表扬）
-        praise_btn = Button(
-            text='棒!',
-            size_hint=(0.12, 1),
-            font_size=get_font_size(18),
-            background_color=get_color_from_hex('#FF5722'),
-            background_normal=''
-        )
-        praise_btn.bind(on_press=lambda x: play_praise())
-        nav.add_widget(praise_btn)
-        
-        layout.add_widget(nav)
-        
-        self.hint_label = Label(
-            text='用手指沿着红色的字描写吧！',
-            font_size=get_font_size(22),
-            color=get_color_from_hex('#666666'),
-            size_hint=(1, 0.05)
-        )
-        layout.add_widget(self.hint_label)
-        
-        # 写字区域 - 大画布居中
-        write_box = BoxLayout(size_hint=(1, 0.60), padding=dp(20))
-        self.write_canvas = WriteCanvas()
-        write_box.add_widget(self.write_canvas)
-        layout.add_widget(write_box)
-        
-        # 获取所有汉字
-        self.all_chars = []
-        for level in [1, 2, 3]:
-            words = ChineseData.get_words(level=level)
-            for char, pinyin, word, emoji in words:
-                if char not in [c[0] for c in self.all_chars]:
-                    self.all_chars.append((char, pinyin))
-        
-        # 底部汉字选择区 - 带分页
-        bottom_box = BoxLayout(orientation='vertical', size_hint=(1, 0.25), spacing=dp(5))
-        
-        # 分页控制
-        page_nav = BoxLayout(size_hint=(1, 0.25), spacing=dp(10), padding=[dp(10), 0])
-        
-        self.prev_btn = Button(
-            text='<',
-            size_hint=(0.1, 1),
-            font_size=get_font_size(24),
-            background_color=get_color_from_hex('#9E9E9E'),
-            background_normal=''
-        )
-        self.prev_btn.bind(on_press=self.prev_page)
-        page_nav.add_widget(self.prev_btn)
-        
-        self.page_label = Label(
-            text='第1页',
-            font_size=get_font_size(18),
-            color=get_color_from_hex('#666666'),
-            size_hint=(0.8, 1)
-        )
-        page_nav.add_widget(self.page_label)
-        
-        self.next_page_btn = Button(
-            text='>',
-            size_hint=(0.1, 1),
-            font_size=get_font_size(24),
-            background_color=get_color_from_hex('#9E9E9E'),
-            background_normal=''
-        )
-        self.next_page_btn.bind(on_press=self.next_page)
-        page_nav.add_widget(self.next_page_btn)
-        
-        bottom_box.add_widget(page_nav)
-        
-        # 汉字按钮容器
-        self.char_container = BoxLayout(orientation='vertical', size_hint=(1, 0.75), spacing=dp(5))
-        bottom_box.add_widget(self.char_container)
-        
-        layout.add_widget(bottom_box)
-        
-        self.add_widget(layout)
-        
-        # 显示第一页
-        self.update_char_buttons()
-        
-        # 选择第一个字
-        if self.all_chars:
-            self.select_char_by_name(self.all_chars[0][0])
-    
-    def update_char_buttons(self):
-        """更新汉字按钮显示"""
-        self.char_container.clear_widgets()
-        
-        total_pages = (len(self.all_chars) + self.chars_per_page - 1) // self.chars_per_page
-        self.page_label.text = f'第{self.current_page + 1}/{total_pages}页 (共{len(self.all_chars)}字)'
-        
-        # 获取当前页的汉字
-        start = self.current_page * self.chars_per_page
-        end = min(start + self.chars_per_page, len(self.all_chars))
-        page_chars = self.all_chars[start:end]
-        
-        # 第一行（前6个）
-        char_box1 = BoxLayout(size_hint=(1, 0.5), spacing=dp(8), padding=[dp(5), 0])
-        for i, (char, pinyin) in enumerate(page_chars[:6]):
-            btn = Button(
-                text=char, 
-                font_size=get_font_size(32), 
-                background_color=get_color_from_hex('#FFB74D'), 
-                background_normal='',
-                size_hint_min=(dp(60), dp(50))
-            )
-            btn.bind(on_press=self.select_char)
-            char_box1.add_widget(btn)
-        # 填充空位
-        for _ in range(6 - len(page_chars[:6])):
-            char_box1.add_widget(Label())
-        self.char_container.add_widget(char_box1)
-        
-        # 第二行（后6个）
-        char_box2 = BoxLayout(size_hint=(1, 0.5), spacing=dp(8), padding=[dp(5), 0])
-        for i, (char, pinyin) in enumerate(page_chars[6:12]):
-            btn = Button(
-                text=char, 
-                font_size=get_font_size(32), 
-                background_color=get_color_from_hex('#81D4FA'), 
-                background_normal='',
-                size_hint_min=(dp(60), dp(50))
-            )
-            btn.bind(on_press=self.select_char)
-            char_box2.add_widget(btn)
-        # 填充空位
-        for _ in range(6 - len(page_chars[6:12])):
-            char_box2.add_widget(Label())
-        self.char_container.add_widget(char_box2)
-        
-        # 更新分页按钮状态
-        self.prev_btn.disabled = (self.current_page == 0)
-        self.next_page_btn.disabled = (self.current_page >= total_pages - 1)
-    
-    def prev_page(self, instance):
-        """上一页"""
-        if self.current_page > 0:
-            self.current_page -= 1
-            self.update_char_buttons()
-    
-    def next_page(self, instance):
-        """下一页"""
-        total_pages = (len(self.all_chars) + self.chars_per_page - 1) // self.chars_per_page
-        if self.current_page < total_pages - 1:
-            self.current_page += 1
-            self.update_char_buttons()
-    
-    def select_char(self, instance):
-        self.select_char_by_name(instance.text)
-    
-    def select_char_by_name(self, char):
-        self.current_char = char
-        self.write_canvas.set_guide_char(char)
-        self.clear_canvas(None)
-        speak(char)
-    
-    def speak_char(self, instance):
-        if self.current_char:
-            speak(self.current_char)
-    
-    def clear_canvas(self, instance):
-        self.write_canvas.clear_drawing()
-    
-    def next_char(self, instance):
-        """随机换一个字"""
-        if self.all_chars:
-            char = random.choice(self.all_chars)[0]
-            self.select_char_by_name(char)
-            play_praise()
-
-
-class WriteCanvas(Widget):
-    """写字画布 - 汉字显示在中央，小朋友直接在上面描写"""
-    
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.guide_char = '人'
-        self.lines = []
-        self.current_line = []
-        # 创建用于显示汉字的Label
-        self.char_label = Label(
-            text='人',
-            font_size=sp(200),
-            color=(1, 0.8, 0.8, 0.6),  # 浅红色半透明
-            halign='center',
-            valign='middle'
-        )
-        self.add_widget(self.char_label)
-        self.bind(size=self.on_resize, pos=self.on_resize)
-        Clock.schedule_once(lambda dt: self.redraw(), 0.1)
-    
-    def on_resize(self, *args):
-        # 让汉字Label填满画布
-        self.char_label.size = self.size
-        self.char_label.pos = self.pos
-        self.char_label.text_size = self.size
-        self.redraw()
-    
-    def set_guide_char(self, char):
-        self.guide_char = char
-        self.char_label.text = char
-        self.redraw()
-    
-    def redraw(self, *args):
-        self.canvas.before.clear()
-        with self.canvas.before:
-            # 白色背景
-            Color(1, 1, 1, 1)
-            Rectangle(pos=self.pos, size=self.size)
-            
-            # 米字格（浅灰色）
-            Color(0.85, 0.85, 0.85, 1)
-            cx, cy = self.center_x, self.center_y
-            w, h = self.width, self.height
-            # 横线
-            Line(points=[self.x, cy, self.x + w, cy], width=1.5)
-            # 竖线
-            Line(points=[cx, self.y, cx, self.y + h], width=1.5)
-            # 对角线
-            Line(points=[self.x, self.y, self.x + w, self.y + h], width=1)
-            Line(points=[self.x, self.y + h, self.x + w, self.y], width=1)
-            
-            # 边框（深一点）
-            Color(0.7, 0.7, 0.7, 1)
-            Line(rectangle=(self.x + 2, self.y + 2, w - 4, h - 4), width=3)
-        
-        # 重绘用户笔迹
-        self.redraw_lines()
-    
-    def redraw_lines(self):
-        self.canvas.after.clear()
-        with self.canvas.after:
-            # 用户笔迹用深蓝色粗线
-            Color(0.1, 0.2, 0.7, 1)
-            for line in self.lines:
-                if len(line) >= 4:
-                    Line(points=line, width=dp(6), cap='round', joint='round')
-    
-    def clear_drawing(self):
-        self.lines = []
-        self.current_line = []
-        self.redraw()
-    
-    def on_touch_down(self, touch):
-        if self.collide_point(*touch.pos):
-            self.current_line = [touch.x, touch.y]
-            touch.grab(self)
-            return True
-        return super().on_touch_down(touch)
-    
-    def on_touch_move(self, touch):
-        if touch.grab_current is self:
-            self.current_line.extend([touch.x, touch.y])
-            # 实时绘制当前笔画
-            self.canvas.after.clear()
-            with self.canvas.after:
-                Color(0.1, 0.2, 0.7, 1)
-                for line in self.lines:
-                    if len(line) >= 4:
-                        Line(points=line, width=dp(6), cap='round', joint='round')
-                if len(self.current_line) >= 4:
-                    Line(points=self.current_line, width=dp(6), cap='round', joint='round')
-            return True
-        return super().on_touch_move(touch)
-    
-    def on_touch_up(self, touch):
-        if touch.grab_current is self:
-            touch.ungrab(self)
-            if len(self.current_line) >= 4:
-                self.lines.append(self.current_line[:])
-            self.current_line = []
-            self.redraw_lines()
-            return True
-        return super().on_touch_up(touch)
-        return super().on_touch_move(touch)
-    
-    def on_touch_up(self, touch):
-        if touch.grab_current is self:
-            touch.ungrab(self)
-            if len(self.current_line) >= 4:
-                self.lines.append(self.current_line[:])
-            self.current_line = []
-            return True
-        return super().on_touch_up(touch)
-
-
-
-
-
-class ChineseStoryScreen(Screen):
-    CHAR_STORIES = {
-        '人': {
-            'story': '很久很久以前，有一个聪明的古人想画一个人。他看到人站着的样子，两条腿稳稳地站在地上，身体微微弯曲。于是他画了一撇一捺，就像一个人侧着身子站立。从此，这个简单的符号就代表了人，一直用到今天！',
-            'origin': '象形字，像人侧立的样子'
-        },
-        '口': {
-            'story': '小朋友，你张开嘴巴看看镜子，嘴巴是不是方方的？古时候的人也发现了这个秘密！他们画了一个方方的框框，就像张开的嘴巴一样。吃饭要用口，说话要用口，唱歌也要用口，口字真重要！',
-            'origin': '象形字，像张开的嘴巴'
-        },
-        '日': {
-            'story': '每天早上，太阳公公从东边升起来，圆圆的，亮亮的，照得大地暖洋洋。古人抬头看太阳，画了一个圆圈，中间加一点表示光芒。后来圆圈变成了方框，就成了我们现在写的日字。日就是太阳！',
-            'origin': '象形字，像圆圆的太阳'
-        },
-        '月': {
-            'story': '晚上，月亮婆婆出来了。有时候月亮圆圆的像大饼，有时候弯弯的像小船。古人最喜欢弯弯的月牙，他们把月牙的样子画下来，就成了月字。月亮弯弯挂天上，照着小朋友做美梦！',
-            'origin': '象形字，像弯弯的月牙'
-        },
-        '山': {
-            'story': '远远望去，大山高高的，一座连着一座。中间的山峰最高，两边的矮一些。古人用三个尖尖的笔画，画出了山的样子。中间高，两边低，这就是山字！爬山虽然累，但是山顶的风景最美！',
-            'origin': '象形字，像三座山峰'
-        },
-        '水': {
-            'story': '小河里的水哗啦啦地流，溅起一朵朵小水花。古人蹲在河边看水流，看到水一弯一弯地往前跑。他们画出水流动的样子，弯弯曲曲的，就成了水字。水能喝，水能洗澡，水是生命之源！',
-            'origin': '象形字，像流动的水波'
-        },
-        '火': {
-            'story': '古时候，人们学会了生火。火苗跳啊跳，一会儿高一会儿低，上面尖尖的，下面宽宽的，还会噼里啪啦响。古人把火苗的样子画下来，就成了火字。火能取暖，火能做饭，但是小朋友不能玩火哦！',
-            'origin': '象形字，像跳动的火苗'
-        },
-        '手': {
-            'story': '伸出你的小手看一看，有手掌，有五个手指头。古人画手的时候，画出手腕和五个手指，就像一只张开的手。手可以拿东西，可以写字画画，可以拥抱爸爸妈妈，小手真能干！',
-            'origin': '象形字，像张开的手掌'
-        },
-        '足': {
-            'story': '低头看看你的小脚丫，有脚后跟，有脚趾头。古人画脚的时候，画出脚的形状，上面是小腿，下面是脚掌。足就是脚的意思。用足可以走路，可以跑步，可以踢足球！',
-            'origin': '象形字，像脚的形状'
-        },
-        '鸟': {
-            'story': '树上有只小鸟，它有尖尖的嘴巴，圆圆的眼睛，身上有漂亮的羽毛，还有一条长长的尾巴。古人把小鸟的样子画下来，头、身子、尾巴都有，就成了鸟字。小鸟会飞，会唱歌，真可爱！',
-            'origin': '象形字，像一只小鸟'
-        },
-        '田': {
-            'story': '农民伯伯的田地，方方正正的，中间有小路把田分成一块一块的。从高处往下看，田地就像一个井字格。古人画出田地的样子，外面一个大框，里面有十字，就成了田字。田里种庄稼，养活我们！',
-            'origin': '象形字，像方正的田地'
-        },
-        '石': {
-            'story': '山脚下有一块大石头，硬硬的，沉沉的，搬都搬不动。古人画石头的时候，上面画一个山崖，下面画一块石头。石头可以盖房子，可以铺路，石头真有用！',
-            'origin': '象形字，像山崖下的石头'
-        },
-    }
-    
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.current_char = None
-        self.current_index = 0
-        self.char_list = list(self.CHAR_STORIES.keys())
-        self.build_ui()
-    
-    def build_ui(self):
-        layout = BoxLayout(orientation='vertical', padding=get_padding(), spacing=dp(10))
-        with layout.canvas.before:
-            Color(*get_color_from_hex('#E8F5E9'))
-            self.bg = Rectangle(pos=layout.pos, size=layout.size)
-        layout.bind(pos=lambda i,v: setattr(self.bg, 'pos', v), size=lambda i,v: setattr(self.bg, 'size', v))
-        
-        nav = BoxLayout(size_hint=(1, 0.1))
-        back_btn = Button(text='< 返回', size_hint=(0.15, 1), font_size=get_font_size(18), background_color=get_color_from_hex('#66BB6A'), background_normal='')
-        back_btn.bind(on_press=lambda x: setattr(self.manager, 'current', 'chinese_menu'))
-        nav.add_widget(back_btn)
-        nav.add_widget(Label(text='【汉字故事】', font_size=get_font_size(28), color=get_color_from_hex('#2E7D32'), bold=True, size_hint=(0.4, 1)))
-        prev_btn = Button(text='<', size_hint=(0.1, 1), font_size=get_font_size(24), background_color=get_color_from_hex('#81C784'), background_normal='')
-        prev_btn.bind(on_press=self.prev_char)
-        nav.add_widget(prev_btn)
-        next_btn = Button(text='>', size_hint=(0.1, 1), font_size=get_font_size(24), background_color=get_color_from_hex('#81C784'), background_normal='')
-        next_btn.bind(on_press=self.next_char)
-        nav.add_widget(next_btn)
-        listen_btn = Button(text='听故事', size_hint=(0.15, 1), font_size=get_font_size(18), background_color=get_color_from_hex('#FF9800'), background_normal='')
-        listen_btn.bind(on_press=self.speak_story)
-        nav.add_widget(listen_btn)
-        layout.add_widget(nav)
-        
-        content = BoxLayout(orientation='horizontal', size_hint=(1, 0.75), spacing=dp(20), padding=dp(10))
-        left_box = BoxLayout(orientation='vertical', size_hint=(0.35, 1))
-        self.char_label = Label(text='人', font_size=get_font_size(180), color=get_color_from_hex('#2E7D32'), bold=True, size_hint=(1, 0.7))
-        left_box.add_widget(self.char_label)
-        self.origin_label = Label(text='象形字', font_size=get_font_size(18), color=get_color_from_hex('#666666'), size_hint=(1, 0.3))
-        left_box.add_widget(self.origin_label)
-        content.add_widget(left_box)
-        
-        right_box = BoxLayout(orientation='vertical', size_hint=(0.65, 1), padding=dp(10))
-        self.title_label = Label(text='人 的故事', font_size=get_font_size(28), color=get_color_from_hex('#FF6B00'), bold=True, size_hint=(1, 0.15))
-        right_box.add_widget(self.title_label)
-        self.story_btn = Button(text='点击听故事...', font_size=get_font_size(24), background_color=get_color_from_hex('#FFF8E1'), background_normal='', color=get_color_from_hex('#333333'), size_hint=(1, 0.85), halign='center', valign='middle')
-        self.story_btn.bind(on_press=self.speak_story)
-        self.story_btn.bind(size=lambda *x: setattr(self.story_btn, 'text_size', (self.story_btn.width - dp(20), None)))
-        right_box.add_widget(self.story_btn)
-        content.add_widget(right_box)
-        layout.add_widget(content)
-        
-        char_box = BoxLayout(size_hint=(1, 0.13), spacing=dp(8), padding=dp(5))
-        for char in self.char_list:
-            btn = Button(text=char, font_size=get_font_size(28), background_color=get_color_from_hex('#A5D6A7'), background_normal='')
-            btn.bind(on_press=self.select_char)
-            char_box.add_widget(btn)
-        layout.add_widget(char_box)
-        self.add_widget(layout)
-        self.show_story('人')
-    
-    def select_char(self, instance):
-        self.show_story(instance.text)
-    
-    def show_story(self, char):
-        if char not in self.CHAR_STORIES:
-            return
-        self.current_char = char
-        self.current_index = self.char_list.index(char) if char in self.char_list else 0
-        data = self.CHAR_STORIES[char]
-        self.char_label.text = char
-        self.title_label.text = f'{char} 的故事'
-        self.story_btn.text = data['story']
-        self.origin_label.text = data['origin']
-        speak(char)
-    
-    def speak_story(self, instance):
-        if self.current_char and self.current_char in self.CHAR_STORIES:
-            speak(self.CHAR_STORIES[self.current_char]['story'])
-    
-    def prev_char(self, instance):
-        self.current_index = (self.current_index - 1) % len(self.char_list)
-        self.show_story(self.char_list[self.current_index])
-    
-    def next_char(self, instance):
-        self.current_index = (self.current_index + 1) % len(self.char_list)
-        self.show_story(self.char_list[self.current_index])
-
-
-
 class ChineseLearnApp(App):
-    """乐乐的识字乐园 - Android/鸿蒙平板版"""
+    """乐乐的识字乐园 - Android平板版"""
     
     def build(self):
         self.title = '乐乐的识字乐园'
         
-        print("[App] 开始构建应用...")
-        
-        # 初始化音频（关键！）
-        print("[App] 初始化音频模块...")
-        audio_instance = init_audio()
-        if audio_instance:
-            print("[App] 音频模块初始化成功")
-        else:
-            print("[App] 警告：音频模块初始化失败")
-        
-        # 延迟播放欢迎语，等待TTS完全初始化（增加延迟时间）
-        Clock.schedule_once(lambda dt: self._play_welcome(), 3.0)
+        # 初始化音频
+        init_audio()
+        # 延迟播放欢迎语，等待TTS初始化
+        Clock.schedule_once(lambda dt: speak("欢迎来到乐乐的识字乐园"), 1.5)
         
         sm = ScreenManager(transition=FadeTransition())
         sm.add_widget(ChineseMenuScreen(name='chinese_menu'))
@@ -2745,35 +1958,16 @@ class ChineseLearnApp(App):
         sm.add_widget(ChineseWhackScreen(name='chinese_whack'))
         sm.add_widget(ChinesePictureScreen(name='chinese_picture'))
         sm.add_widget(ChineseChallengeScreen(name='chinese_challenge'))
-        sm.add_widget(ChineseWriteScreen(name='chinese_write'))
-        sm.add_widget(ChineseStoryScreen(name='chinese_story'))
         
-        print("[App] 应用构建完成")
         return sm
     
-    def _play_welcome(self):
-        """播放欢迎语"""
-        print("[App] 尝试播放欢迎语...")
-        speak("欢迎来到乐乐的识字乐园")
-    
     def on_pause(self):
-        """Android/鸿蒙暂停时调用"""
-        print("[App] 应用暂停")
+        """Android暂停时调用"""
         return True
     
     def on_resume(self):
-        """Android/鸿蒙恢复时调用"""
-        print("[App] 应用恢复")
+        """Android恢复时调用"""
         pass
-    
-    def on_stop(self):
-        """应用停止时清理资源"""
-        print("[App] 应用停止")
-        if audio:
-            try:
-                audio.cleanup()
-            except:
-                pass
 
 
 if __name__ == '__main__':
