@@ -174,7 +174,15 @@ def find_local_audio(text):
     """
     audio_dir = _init_audio_dir()
     if not os.path.exists(audio_dir):
+        print(f"[audio] 音频目录不存在: {audio_dir}")
         return None
+    
+    # 欢迎语
+    if '欢迎' in text or '乐园' in text:
+        filepath = os.path.join(audio_dir, "welcome.mp3")
+        if os.path.exists(filepath):
+            print(f"[audio] 找到欢迎语音频!")
+            return filepath
     
     # 单个汉字
     if len(text) == 1:
@@ -182,8 +190,7 @@ def find_local_audio(text):
         if os.path.exists(filepath):
             return filepath
     
-    # 拼音（带声调的拼音）
-    # 检查是否是拼音格式
+    # 拼音
     filepath = os.path.join(audio_dir, f"pinyin_{text}.mp3")
     if os.path.exists(filepath):
         return filepath
@@ -193,6 +200,7 @@ def find_local_audio(text):
     if os.path.exists(filepath):
         return filepath
     
+    print(f"[audio] 未找到本地音频: {text}")
     return None
 
 def find_praise_audio():

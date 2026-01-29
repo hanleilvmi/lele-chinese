@@ -99,6 +99,9 @@ ENCOURAGES = [
 SHORT_PRAISES = ['真棒！', '好！', '对了！', '厉害！', '棒！', '耶！']
 SHORT_ENCOURAGES = ['再试！', '加油！', '没事！']
 
+# 欢迎语
+WELCOME_MSG = "欢迎来到乐乐的识字乐园"
+
 async def generate_audio(text, filename):
     """生成单个音频文件"""
     filepath = os.path.join(OUTPUT_DIR, filename)
@@ -165,6 +168,10 @@ async def main():
     
     for i, text in enumerate(SHORT_ENCOURAGES):
         await generate_audio(text, f"short_encourage_{i:02d}.mp3")
+    
+    # 生成欢迎语
+    print("\n[6/6] 生成欢迎语...")
+    await generate_audio(WELCOME_MSG, "welcome.mp3")
     
     # 统计
     files = [f for f in os.listdir(OUTPUT_DIR) if f.endswith(".mp3")]
