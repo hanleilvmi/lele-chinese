@@ -3223,9 +3223,12 @@ class WriteCanvas(Widget):
         median = self.animation_medians[self.animation_index]
         
         # 计算画布中汉字区域的边界
-        # 数据坐标系: 0-1024, Y轴向上
-        # 画布坐标系: Y轴向上（Kivy默认）
-        padding = min(self.width, self.height) * 0.1
+        # hanzi-writer-data 坐标系: 0-1024, Y轴向上
+        # Kivy 坐标系: Y轴向上，但汉字显示是从上往下写
+        # 所以需要翻转Y轴
+        
+        # 汉字区域（与红色底字对齐）
+        padding = min(self.width, self.height) * 0.05
         left = self.x + padding
         bottom = self.y + padding
         char_width = self.width - 2 * padding
@@ -3239,7 +3242,9 @@ class WriteCanvas(Widget):
             ry = point[1] / 1024.0  # 归一化到 0-1
             
             x = left + rx * char_width
-            y = bottom + ry * char_height  # Y轴方向相同，不需要翻转
+            # Y轴翻转：原数据Y=0在底部，Y=1024在顶部
+            # 但汉字显示Y=0应该在顶部
+            y = bottom + (1.0 - ry) * char_height
             actual_points.extend([x, y])
         
         # 逐步绘制这一笔
