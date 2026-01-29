@@ -163,6 +163,10 @@ def _init_audio_dir():
         print(f"[audio] 音频目录: {AUDIO_DIR}")
     return AUDIO_DIR
 
+def char_to_code(char):
+    """将汉字转换为Unicode编码字符串（十六进制）"""
+    return format(ord(char), 'x')
+
 def find_local_audio(text):
     """查找本地预生成的音频文件
     
@@ -184,23 +188,51 @@ def find_local_audio(text):
             print(f"[audio] 找到欢迎语音频!")
             return filepath
     
-    # 单个汉字
+    # 单个汉字 - 使用Unicode编码作为文件名
     if len(text) == 1:
-        filepath = os.path.join(audio_dir, f"char_{text}.mp3")
+        code = char_to_code(text)
+        filepath = os.path.join(audio_dir, f"char_{code}.mp3")
         if os.path.exists(filepath):
+            print(f"[audio] 找到汉字音频: {text} -> char_{code}.mp3")
             return filepath
     
-    # 拼音
-    filepath = os.path.join(audio_dir, f"pinyin_{text}.mp3")
-    if os.path.exists(filepath):
-        return filepath
+    # 拼音 - 需要根据汉字查找对应的拼音音频
+    # 拼音文件名也是用汉字的Unicode编码
+    # 这里text可能是拼音字符串，需要特殊处理
+    # 暂时跳过拼音的本地查找，使用TTS
     
-    # 词组
-    filepath = os.path.join(audio_dir, f"word_{text}.mp3")
-    if os.path.exists(filepath):
-        return filepath
+    # 词组 - 使用第一个汉字的Unicode编码
+    if len(text) >= 2:
+        first_char = text[0]
+        code = char_to_code(first_char)
+        filepath = os.path.join(audio_dir, f"word_{code}.mp3")
+        if os.path.exists(filepath):
+            print(f"[audio] 找到词组音频: {text} -> word_{code}.mp3")
+            return filepath
     
     print(f"[audio] 未找到本地音频: {text}")
+    return None
+
+def find_pinyin_audio(char):
+    """查找汉字对应的拼音音频文件
+    
+    Args:
+        char: 单个汉字
+        
+    Returns:
+        音频文件路径，如果不存在返回None
+    """
+    audio_dir = _init_audio_dir()
+    if not os.path.exists(audio_dir):
+        return None
+    
+    if len(char) == 1:
+        code = char_to_code(char)
+        filepath = os.path.join(audio_dir, f"pinyin_{code}.mp3")
+        if os.path.exists(filepath):
+            print(f"[audio] 找到拼音音频: {char} -> pinyin_{code}.mp3")
+            return filepath
+    
     return None
 
 def find_praise_audio():
@@ -606,6 +638,20 @@ class KivyAudio(AudioInterface):
             Clock.schedule_once(lambda dt: self._play_file(local_audio, cleanup=False), 0)
         else:
             self.speak(random.choice(SHORT_ENCOURAGES))
+    
+    def speak_pinyin(self, char: str):
+        """播放汉字的拼音 - 优先使用本地预生成音频
+        
+        Args:
+            char: 单个汉字
+        """
+        local_audio = find_pinyin_audio(char)
+        if local_audio:
+            print(f"[KivyAudio] 使用本地拼音音频: {local_audio}")
+            Clock.schedule_once(lambda dt: self._play_file(local_audio, cleanup=False), 0)
+        else:
+            # 没有本地音频，使用TTS（需要从数据中获取拼音文本）
+            print(f"[KivyAudio] 未找到拼音音频，跳过: {char}")
     
     def play_sound(self, sound_name: str):
         """播放音效"""

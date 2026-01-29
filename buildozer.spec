@@ -9,7 +9,7 @@ source.include_patterns = 汪汪队图片/*,core/*,ui_kivy/*,audio/generated/*
 source.exclude_patterns = backup_*,build,dist,__pycache__,.git,.github,*.pyc,*.pyo
 source.main = main.py
 
-version = 1.6.0
+version = 1.7.0
 
 # 应用图标 (莱德)
 icon.filename = icon.png

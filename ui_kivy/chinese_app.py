@@ -687,11 +687,11 @@ class ChineseMenuScreen(Screen):
             if os.path.exists(audio_dir):
                 files = os.listdir(audio_dir)
                 mp3_count = len([f for f in files if f.endswith('.mp3')])
-                self.debug_label.text = f'v1.5.9 | 音频:{mp3_count}个 | {PLATFORM}'
+                self.debug_label.text = f'v1.7.0 | 音频:{mp3_count}个 | {PLATFORM}'
             else:
-                self.debug_label.text = f'v1.5.9 | 音频:未找到 | {PLATFORM} | {audio_dir[:30]}...'
+                self.debug_label.text = f'v1.7.0 | 音频:未找到 | {PLATFORM} | {audio_dir[:30]}...'
         except Exception as e:
-            self.debug_label.text = f'v1.5.9 | 音频错误:{str(e)[:20]}'
+            self.debug_label.text = f'v1.7.0 | 音频错误:{str(e)[:20]}'
     
     def animate_title(self):
         """标题颜色动画"""
