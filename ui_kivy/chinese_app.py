@@ -3223,13 +3223,14 @@ class WriteCanvas(Widget):
         median = self.animation_medians[self.animation_index]
         
         # hanzi-writer-data 坐标系: 0-1024
-        # 经测试发现需要Y轴不翻转才能正确显示
+        # 汉字显示在画布中央，需要调整大小和位置与红色底字对齐
         
-        # 汉字显示在画布中央
-        char_size = min(self.width, self.height) * 0.65
+        # 调整参数让笔画与红色汉字重合
+        char_size = min(self.width, self.height) * 0.55  # 稍微缩小
         
-        char_left = self.center_x - char_size / 2
-        char_bottom = self.center_y - char_size / 2
+        # 稍微向右上偏移
+        char_left = self.center_x - char_size / 2 + char_size * 0.02
+        char_bottom = self.center_y - char_size / 2 + char_size * 0.05
         
         # 转换坐标
         actual_points = []
@@ -3238,7 +3239,6 @@ class WriteCanvas(Widget):
             ry = point[1] / 1024.0
             
             x = char_left + rx * char_size
-            # 不翻转Y轴
             y = char_bottom + ry * char_size
             actual_points.extend([x, y])
         
