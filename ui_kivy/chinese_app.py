@@ -2584,7 +2584,9 @@ class ChineseChallengeScreen(Screen):
         for btn in self.answers_layout.children:
             btn.disabled = True
         
-        Clock.schedule_once(lambda dt: self.next_question(), 1.2)
+        # 答对延迟2.5秒让表扬语音播完，答错延迟2秒
+        delay = 2.5 if is_correct else 2.0
+        Clock.schedule_once(lambda dt: self.next_question(), delay)
     
     def level_complete(self):
         """过关成功 - 显示解锁的狗狗"""
