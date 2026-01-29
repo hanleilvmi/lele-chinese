@@ -65,6 +65,47 @@ class PictureCanvas(Widget):
             '听': self.draw_hear,
             '左': self.draw_left,
             '右': self.draw_right,
+            # 新增汉字绘图
+            '风': self.draw_wind,
+            '宝': self.draw_baby,
+            '开': self.draw_open,
+            '关': self.draw_close,
+            '里': self.draw_inside,
+            '他': self.draw_he,
+            '工': self.draw_worker,
+            '儿': self.draw_child,
+            '老': self.draw_old,
+            '好': self.draw_good,
+            '饭': self.draw_rice,
+            '玩': self.draw_play,
+            '叔': self.draw_uncle,
+            '自': self.draw_self,
+            '姑': self.draw_aunt,
+            '娘': self.draw_girl,
+            '电': self.draw_electric,
+            '木': self.draw_wood,
+            '比': self.draw_compare,
+            '图': self.draw_picture,
+            '一': self.draw_one,
+            '三': self.draw_three,
+            '四': self.draw_four,
+            '五': self.draw_five,
+            '羊': self.draw_sheep,
+            '白': self.draw_white,
+            '牛': self.draw_cow,
+            '鼠': self.draw_mouse,
+            '心': self.draw_heart,
+            '可': self.draw_ok,
+            '说': self.draw_speak,
+            '两': self.draw_two,
+            '男': self.draw_boy,
+            '你': self.draw_you,
+            '不': self.draw_no,
+            '子': self.draw_kid,
+            '在': self.draw_at,
+            '头': self.draw_head,
+            '我': self.draw_me,
+            '房': self.draw_house,
         }
         
         func = draw_funcs.get(char, self.draw_default)
@@ -645,3 +686,326 @@ class PictureCanvas(Widget):
             # 问号
             Line(points=[cx - r*0.3, cy + r*0.5, cx, cy + r*0.8, cx + r*0.3, cy + r*0.5, cx + r*0.2, cy, cx, cy - r*0.2], width=dp(4))
             Ellipse(pos=(cx - dp(5), cy - r*0.6), size=(dp(10), dp(10)))
+
+    # ========== 新增汉字绘图函数 ==========
+    
+    def draw_wind(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.35
+            Color(0.6, 0.8, 0.9)
+            for i in range(3):
+                y_offset = (i - 1) * r * 0.4
+                Line(points=[cx - r*0.8, cy + y_offset, cx + r*0.8, cy + y_offset], width=dp(3))
+
+    def draw_baby(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.3
+            Color(0.95, 0.8, 0.7)
+            Ellipse(pos=(cx - r*0.4, cy + r*0.1), size=(r*0.8, r*0.8))
+            Color(1, 0.8, 0.9)
+            Rectangle(pos=(cx - r*0.35, cy - r*0.5), size=(r*0.7, r*0.6))
+
+    def draw_open(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.35
+            Color(0.6, 0.4, 0.2)
+            Line(rectangle=(cx - r*0.6, cy - r*0.8, r*1.2, r*1.6), width=dp(3))
+            Color(0.8, 0.6, 0.4)
+            Rectangle(pos=(cx - r*0.5, cy - r*0.7), size=(r*0.8, r*1.4))
+
+    def draw_close(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.35
+            Color(0.5, 0.35, 0.2)
+            Rectangle(pos=(cx - r*0.45, cy - r*0.75), size=(r*0.9, r*1.5))
+
+    def draw_inside(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.35
+            Color(0.8, 0.6, 0.4)
+            Line(rectangle=(cx - r*0.6, cy - r*0.5, r*1.2, r*1.0), width=dp(3))
+            Color(1, 0.5, 0.5)
+            Ellipse(pos=(cx - r*0.15, cy - r*0.15), size=(r*0.3, r*0.3))
+
+    def draw_he(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.28
+            Color(0.9, 0.75, 0.6)
+            Ellipse(pos=(cx - r*0.3, cy + r*0.3), size=(r*0.6, r*0.6))
+            Color(0.3, 0.5, 0.8)
+            Rectangle(pos=(cx - r*0.3, cy - r*0.4), size=(r*0.6, r*0.7))
+
+    def draw_worker(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.3
+            Color(1, 0.8, 0)
+            Ellipse(pos=(cx - r*0.35, cy + r*0.5), size=(r*0.7, r*0.4))
+            Color(0.9, 0.75, 0.6)
+            Ellipse(pos=(cx - r*0.3, cy + r*0.2), size=(r*0.6, r*0.5))
+            Color(0.2, 0.4, 0.8)
+            Rectangle(pos=(cx - r*0.35, cy - r*0.5), size=(r*0.7, r*0.7))
+
+    def draw_child(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.25
+            Color(0.9, 0.75, 0.6)
+            Ellipse(pos=(cx - r*0.35, cy + r*0.25), size=(r*0.7, r*0.7))
+            Color(0.4, 0.7, 0.9)
+            Rectangle(pos=(cx - r*0.3, cy - r*0.4), size=(r*0.6, r*0.65))
+
+    def draw_old(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.3
+            Color(0.9, 0.78, 0.65)
+            Ellipse(pos=(cx - r*0.3, cy + r*0.25), size=(r*0.6, r*0.6))
+            Color(0.9, 0.9, 0.9)
+            Ellipse(pos=(cx - r*0.25, cy + r*0.65), size=(r*0.5, r*0.2))
+            Color(0.5, 0.4, 0.3)
+            Rectangle(pos=(cx - r*0.3, cy - r*0.5), size=(r*0.6, r*0.75))
+
+    def draw_good(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.35
+            Color(0.9, 0.75, 0.6)
+            Rectangle(pos=(cx - r*0.15, cy - r*0.6), size=(r*0.3, r*0.8))
+            Ellipse(pos=(cx - r*0.2, cy + r*0.1), size=(r*0.4, r*0.5))
+
+    def draw_rice(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.35
+            Color(0.3, 0.5, 0.8)
+            Line(points=[cx - r*0.5, cy, cx - r*0.35, cy - r*0.5, cx + r*0.35, cy - r*0.5, cx + r*0.5, cy], width=dp(3))
+            Color(1, 1, 0.95)
+            Ellipse(pos=(cx - r*0.35, cy - r*0.1), size=(r*0.7, r*0.35))
+
+    def draw_play(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.35
+            Color(1, 0.4, 0.4)
+            Ellipse(pos=(cx - r*0.5, cy - r*0.5), size=(r*1.0, r*1.0))
+            Color(1, 1, 0.4)
+            Line(points=[cx - r*0.35, cy, cx + r*0.35, cy], width=dp(3))
+
+    def draw_uncle(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.28
+            Color(0.9, 0.75, 0.6)
+            Ellipse(pos=(cx - r*0.3, cy + r*0.3), size=(r*0.6, r*0.6))
+            Color(0.3, 0.3, 0.3)
+            Rectangle(pos=(cx - r*0.35, cy - r*0.45), size=(r*0.7, r*0.75))
+
+    def draw_self(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.3
+            Color(0.9, 0.75, 0.6)
+            Ellipse(pos=(cx - r*0.3, cy + r*0.2), size=(r*0.6, r*0.6))
+            Color(0.4, 0.6, 0.9)
+            Rectangle(pos=(cx - r*0.3, cy - r*0.5), size=(r*0.6, r*0.7))
+
+    def draw_aunt(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.28
+            Color(0.9, 0.75, 0.6)
+            Ellipse(pos=(cx - r*0.3, cy + r*0.3), size=(r*0.6, r*0.6))
+            Color(0.8, 0.4, 0.6)
+            Rectangle(pos=(cx - r*0.3, cy - r*0.45), size=(r*0.6, r*0.75))
+
+    def draw_girl(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.28
+            Color(0.9, 0.75, 0.6)
+            Ellipse(pos=(cx - r*0.3, cy + r*0.3), size=(r*0.6, r*0.6))
+            Color(1, 0.5, 0.6)
+            Rectangle(pos=(cx - r*0.35, cy - r*0.5), size=(r*0.7, r*0.8))
+
+    def draw_electric(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.4
+            Color(1, 0.9, 0.2)
+            Line(points=[cx, cy + r*0.8, cx + r*0.2, cy, cx - r*0.1, cy, cx + r*0.1, cy - r*0.8], width=dp(5))
+
+    def draw_wood(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.35
+            Color(0.6, 0.4, 0.2)
+            Rectangle(pos=(cx - r*0.15, cy - r*0.8), size=(r*0.3, r*1.2))
+            Line(points=[cx - r*0.5, cy + r*0.2, cx, cy + r*0.4, cx + r*0.5, cy + r*0.2], width=dp(3))
+
+    def draw_compare(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.25
+            Color(0.4, 0.6, 0.9)
+            Ellipse(pos=(cx - r*1.0, cy + r*0.3), size=(r*0.5, r*0.5))
+            Rectangle(pos=(cx - r*0.95, cy - r*0.4), size=(r*0.4, r*0.7))
+            Color(0.9, 0.5, 0.5)
+            Ellipse(pos=(cx + r*0.5, cy + r*0.5), size=(r*0.5, r*0.5))
+            Rectangle(pos=(cx + r*0.55, cy - r*0.2), size=(r*0.4, r*0.7))
+
+    def draw_picture(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.4
+            Color(0.9, 0.85, 0.7)
+            Rectangle(pos=(cx - r*0.6, cy - r*0.5), size=(r*1.2, r*1.0))
+            Color(0.6, 0.4, 0.2)
+            Line(rectangle=(cx - r*0.6, cy - r*0.5, r*1.2, r*1.0), width=dp(3))
+
+    def draw_one(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.4
+            Color(0.9, 0.3, 0.3)
+            Line(points=[cx - r*0.6, cy, cx + r*0.6, cy], width=dp(8))
+
+    def draw_three(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.4
+            Color(0.3, 0.7, 0.4)
+            Line(points=[cx - r*0.5, cy + r*0.4, cx + r*0.5, cy + r*0.4], width=dp(6))
+            Line(points=[cx - r*0.4, cy, cx + r*0.4, cy], width=dp(6))
+            Line(points=[cx - r*0.5, cy - r*0.4, cx + r*0.5, cy - r*0.4], width=dp(6))
+
+    def draw_four(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.35
+            Color(0.3, 0.5, 0.8)
+            Line(rectangle=(cx - r*0.5, cy - r*0.5, r*1.0, r*1.0), width=dp(4))
+            Line(points=[cx - r*0.5, cy, cx + r*0.5, cy], width=dp(3))
+            Line(points=[cx, cy - r*0.5, cx, cy + r*0.5], width=dp(3))
+
+    def draw_five(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.4
+            Color(0.8, 0.5, 0.2)
+            Line(points=[cx - r*0.5, cy + r*0.5, cx + r*0.5, cy + r*0.5], width=dp(5))
+            Line(points=[cx - r*0.5, cy - r*0.5, cx + r*0.5, cy - r*0.5], width=dp(5))
+
+    def draw_sheep(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.35
+            Color(1, 1, 1)
+            Ellipse(pos=(cx - r*0.5, cy - r*0.3), size=(r*1.0, r*0.7))
+            Ellipse(pos=(cx - r*0.3, cy + r*0.2), size=(r*0.5, r*0.5))
+            Color(0, 0, 0)
+            Ellipse(pos=(cx - r*0.15, cy + r*0.4), size=(dp(5), dp(5)))
+            Ellipse(pos=(cx + r*0.02, cy + r*0.4), size=(dp(5), dp(5)))
+
+    def draw_white(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.4
+            Color(1, 1, 1)
+            Ellipse(pos=(cx - r*0.5, cy - r*0.5), size=(r*1.0, r*1.0))
+            Color(0.8, 0.8, 0.8)
+            Line(circle=(cx, cy, r*0.5), width=dp(2))
+
+    def draw_cow(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.35
+            Color(0.9, 0.85, 0.8)
+            Ellipse(pos=(cx - r*0.6, cy - r*0.4), size=(r*1.2, r*0.8))
+            Ellipse(pos=(cx - r*0.35, cy + r*0.2), size=(r*0.6, r*0.5))
+            Color(0, 0, 0)
+            Ellipse(pos=(cx - r*0.2, cy + r*0.35), size=(dp(6), dp(6)))
+            Ellipse(pos=(cx + r*0.05, cy + r*0.35), size=(dp(6), dp(6)))
+
+    def draw_mouse(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.3
+            Color(0.7, 0.7, 0.7)
+            Ellipse(pos=(cx - r*0.5, cy - r*0.3), size=(r*1.0, r*0.6))
+            Ellipse(pos=(cx + r*0.3, cy), size=(r*0.4, r*0.4))
+            Color(1, 0.8, 0.8)
+            Ellipse(pos=(cx - r*0.5, cy + r*0.2), size=(r*0.35, r*0.4))
+            Ellipse(pos=(cx + r*0.15, cy + r*0.2), size=(r*0.35, r*0.4))
+
+    def draw_heart(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.35
+            Color(1, 0.3, 0.4)
+            Ellipse(pos=(cx - r*0.5, cy), size=(r*0.5, r*0.5))
+            Ellipse(pos=(cx, cy), size=(r*0.5, r*0.5))
+
+    def draw_ok(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.4
+            Color(0.3, 0.8, 0.4)
+            Ellipse(pos=(cx - r*0.5, cy - r*0.5), size=(r*1.0, r*1.0))
+            Color(1, 1, 1)
+            Line(points=[cx - r*0.25, cy, cx - r*0.05, cy - r*0.25, cx + r*0.3, cy + r*0.25], width=dp(5))
+
+    def draw_speak(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.35
+            Color(0.9, 0.75, 0.6)
+            Ellipse(pos=(cx - r*0.6, cy - r*0.1), size=(r*0.6, r*0.6))
+            Color(0.8, 0.9, 1)
+            Ellipse(pos=(cx + r*0.1, cy + r*0.1), size=(r*0.7, r*0.5))
+
+    def draw_two(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.3
+            Color(0.9, 0.5, 0.3)
+            Ellipse(pos=(cx - r*0.8, cy - r*0.3), size=(r*0.6, r*0.6))
+            Ellipse(pos=(cx + r*0.2, cy - r*0.3), size=(r*0.6, r*0.6))
+
+    def draw_boy(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.28
+            Color(0.9, 0.75, 0.6)
+            Ellipse(pos=(cx - r*0.35, cy + r*0.3), size=(r*0.7, r*0.7))
+            Color(0.3, 0.5, 0.8)
+            Rectangle(pos=(cx - r*0.35, cy - r*0.45), size=(r*0.7, r*0.75))
+
+    def draw_you(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.3
+            Color(0.9, 0.75, 0.6)
+            Rectangle(pos=(cx - r*0.6, cy - r*0.1), size=(r*0.8, r*0.25))
+            Ellipse(pos=(cx + r*0.2, cy - r*0.15), size=(r*0.35, r*0.35))
+
+    def draw_no(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.4
+            Color(1, 0.3, 0.3)
+            Line(circle=(cx, cy, r*0.5), width=dp(4))
+            Line(points=[cx - r*0.35, cy + r*0.35, cx + r*0.35, cy - r*0.35], width=dp(4))
+
+    def draw_kid(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.25
+            Color(0.95, 0.8, 0.7)
+            Ellipse(pos=(cx - r*0.4, cy + r*0.2), size=(r*0.8, r*0.8))
+            Color(1, 0.7, 0.8)
+            Rectangle(pos=(cx - r*0.35, cy - r*0.45), size=(r*0.7, r*0.65))
+
+    def draw_at(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.35
+            Color(0.8, 0.6, 0.4)
+            Line(rectangle=(cx - r*0.5, cy - r*0.5, r*1.0, r*0.8), width=dp(3))
+            Color(0.9, 0.4, 0.3)
+            Line(points=[cx - r*0.6, cy + r*0.3, cx, cy + r*0.8, cx + r*0.6, cy + r*0.3], width=dp(3))
+
+    def draw_head(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.4
+            Color(0.9, 0.75, 0.6)
+            Ellipse(pos=(cx - r*0.45, cy - r*0.1), size=(r*0.9, r*0.9))
+            Color(0.2, 0.15, 0.1)
+            Ellipse(pos=(cx - r*0.4, cy + r*0.5), size=(r*0.8, r*0.35))
+
+    def draw_me(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.3
+            Color(0.9, 0.75, 0.6)
+            Ellipse(pos=(cx - r*0.3, cy + r*0.2), size=(r*0.6, r*0.6))
+            Color(0.4, 0.6, 0.9)
+            Rectangle(pos=(cx - r*0.3, cy - r*0.5), size=(r*0.6, r*0.7))
+
+    def draw_house(self, cx, cy, size):
+        with self.canvas:
+            r = size * 0.4
+            Color(0.9, 0.85, 0.7)
+            Rectangle(pos=(cx - r*0.5, cy - r*0.5), size=(r*1.0, r*0.8))
+            Color(0.8, 0.4, 0.3)
+            Line(points=[cx - r*0.6, cy + r*0.3, cx, cy + r*0.9, cx + r*0.6, cy + r*0.3], width=dp(4), close=True)
+            Color(0.5, 0.35, 0.2)
+            Rectangle(pos=(cx - r*0.15, cy - r*0.5), size=(r*0.3, r*0.5))

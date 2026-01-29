@@ -2,7 +2,7 @@
 """
 乐乐的识字乐园 - Android/鸿蒙平板优化版
 专为3-5岁儿童设计的汉字学习应用
-v1.5.2 - 汪汪队主题风格统一，修复动画闪退
+v1.8.7 - 修复测验延迟时间，等表扬播完再下一题
 """
 import sys
 import os
@@ -494,8 +494,8 @@ class ChineseMenuScreen(Screen):
                 size_hint_min=(dp(120), dp(100))
             )
             btn.markup = True
-            # 添加爪印符号作为装饰
-            btn.text = f'[size={int(sp(44))}]{icon}[/size]\n[b][size={int(sp(18))}]{title}[/size][/b]\n[size={int(sp(12))}]{desc}[/size]'
+            # 字体放大：图标72sp，标题24sp，描述16sp
+            btn.text = f'[size={int(sp(72))}][b]{icon}[/b][/size]\n[b][size={int(sp(24))}]{title}[/size][/b]\n[size={int(sp(16))}]{desc}[/size]'
             btn.target_screen = screen
             btn.puppy_name = puppy
             btn.original_color = get_color_from_hex(color)
@@ -687,11 +687,11 @@ class ChineseMenuScreen(Screen):
             if os.path.exists(audio_dir):
                 files = os.listdir(audio_dir)
                 mp3_count = len([f for f in files if f.endswith('.mp3')])
-                self.debug_label.text = f'v1.8.2 | 音频:{mp3_count}个 | {PLATFORM}'
+                self.debug_label.text = f'v1.8.7 | 音频:{mp3_count}个 | {PLATFORM}'
             else:
-                self.debug_label.text = f'v1.8.2 | 音频:未找到 | {PLATFORM} | {audio_dir[:30]}...'
+                self.debug_label.text = f'v1.8.7 | 音频:未找到 | {PLATFORM} | {audio_dir[:30]}...'
         except Exception as e:
-            self.debug_label.text = f'v1.8.2 | 音频错误:{str(e)[:20]}'
+            self.debug_label.text = f'v1.8.7 | 音频错误:{str(e)[:20]}'
     
     def animate_title(self):
         """标题颜色动画"""
@@ -836,16 +836,15 @@ class ChineseLearnScreen(Screen):
         end_idx = min(start_idx + self.cards_per_page, len(all_words))
         words = all_words[start_idx:end_idx]
         
-        colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#DDA0DD', '#FFD93D',
-                  '#FF9800', '#8BC34A', '#E91E63', '#9C27B0', '#00BCD4', '#CDDC39']
-        
         for i, (char, pinyin, word, emoji) in enumerate(words):
             btn = Button(
                 background_normal='',
-                background_color=get_color_from_hex(colors[(start_idx + i) % len(colors)])
+                background_color=get_color_from_hex('#FFFFFF'),  # 白底
+                color=get_color_from_hex('#333333')  # 黑字
             )
             btn.markup = True
-            btn.text = f'[size={int(sp(42))}][b]{char}[/b][/size]\n[size={int(sp(16))}]{pinyin}[/size]\n[size={int(sp(12))}]{word}[/size]'
+            # 汉字更大更粗，拼音用蓝色，词语用灰色
+            btn.text = f'[color=#222222][size={int(sp(72))}][b]{char}[/b][/size][/color]\n[color=#1565C0][size={int(sp(18))}][b]{pinyin}[/b][/size][/color]\n[color=#666666][size={int(sp(14))}]{word}[/size][/color]'
             btn.char_data = (char, pinyin, word)
             btn.bind(on_press=self.on_card_press)
             self.cards_grid.add_widget(btn)
@@ -874,9 +873,7 @@ class ChineseLearnScreen(Screen):
     def on_card_press(self, instance):
         if hasattr(instance, 'char_data'):
             char, pinyin, word = instance.char_data
-            # 朗读汉字
-            speak(char)
-            # 跳转到详情页面
+            # 跳转到详情页面（show_char会自动朗读）
             detail_screen = self.manager.get_screen('chinese_detail')
             detail_screen.show_char(char, pinyin, word)
             self.manager.current = 'chinese_detail'
@@ -1060,75 +1057,136 @@ class ChineseDetailScreen(Screen):
         # 进入页面时自动朗读汉字
         Clock.schedule_once(lambda dt: speak(char), 0.3)
         
-        # 根据汉字生成造句和提示
+        # 52个汉字的造句（适合4岁小朋友）
         sentences = {
-            '人': '我是一个小人儿。',
-            '口': '我有一张小嘴巴。',
-            '手': '我有两只小手。',
-            '足': '我喜欢踢足球。',
-            '日': '太阳公公出来了。',
+            # 初级 - 自然
+            '日': '太阳公公出来了，天亮了！',
+            '天': '天空是蓝色的，真漂亮！',
             '月': '月亮弯弯像小船。',
-            '水': '我要喝水。',
-            '火': '火很烫，不能碰。',
-            '山': '山上有很多树。',
-            '石': '石头硬硬的。',
-            '田': '农民伯伯在田里种菜。',
-            '土': '小草从土里长出来。',
-            '大': '大象的耳朵大大的。',
-            '小': '小鸟在树上唱歌。',
-            '上': '飞机飞到天上去了。',
-            '下': '小雨从天上落下来。',
-            '左': '我的左手拿着书。',
-            '右': '我的右手拿着笔。',
-            '天': '天空是蓝色的。',
-            '地': '小草在地上生长。',
-            '花': '花儿真漂亮。',
-            '草': '小草绿绿的。',
-            '树': '大树高高的。',
-            '鸟': '小鸟会飞。',
-            '爸': '爸爸爱我。',
-            '妈': '妈妈做饭很好吃。',
-            '爷': '爷爷给我讲故事。',
-            '奶': '奶奶做的饼干真好吃。',
-            '哥': '哥哥带我去玩。',
+            '风': '风吹树叶沙沙响。',
+            # 初级 - 家人
+            '爸': '爸爸带我去公园玩。',
+            '妈': '妈妈做的饭真好吃！',
+            '宝': '我是爸爸妈妈的小宝贝。',
             '姐': '姐姐教我画画。',
-            '弟': '弟弟很可爱。',
-            '妹': '妹妹喜欢唱歌。',
-            '吃': '我爱吃苹果。',
-            '喝': '多喝水身体好。',
-            '看': '我喜欢看书。',
-            '听': '我在听音乐。',
+            # 初级 - 动作/方位
+            '开': '我会自己开门了。',
+            '关': '睡觉前要关灯。',
+            '地': '小草在地上生长。',
+            '里': '玩具在箱子里面。',
+            '他': '他是我的好朋友。',
+            '工': '工人叔叔盖房子。',
+            '儿': '我是爸爸的好儿子。',
+            '老': '老爷爷的胡子白白的。',
+            # 中级 - 生活
+            '好': '今天天气真好！',
+            '饭': '吃饭前要洗手。',
+            '看': '我喜欢看动画片。',
+            '玩': '我和小朋友一起玩。',
+            '叔': '叔叔送我一个玩具。',
+            '自': '我自己穿衣服。',
+            '姑': '姑姑给我买糖吃。',
+            '娘': '小姑娘穿着红裙子。',
+            # 中级 - 自然元素
+            '火': '火很烫，不能碰！',
+            '土': '小种子埋在土里。',
+            '水': '多喝水身体好。',
+            '电': '电视里有汪汪队！',
+            '木': '木头可以做桌子。',
+            '比': '我和哥哥比身高。',
+            '图': '我画了一幅图画。',
+            '树': '大树上有小鸟。',
+            # 高级 - 数字
+            '一': '我有一个苹果。',
+            '三': '三只小猪盖房子。',
+            '四': '桌子有四条腿。',
+            '五': '我的手有五个手指。',
+            # 高级 - 动物
+            '羊': '小羊咩咩叫。',
+            '白': '白云像棉花糖。',
+            '牛': '小牛在草地上吃草。',
+            '鼠': '小老鼠爱吃奶酪。',
+            # 高级 - 其他
+            '心': '我爱妈妈，心里很开心。',
+            '可': '我可以自己吃饭了。',
+            '说': '小鹦鹉会说话。',
+            '两': '我有两只小手。',
+            '男': '我是一个男孩子。',
+            '你': '你好，我叫乐乐！',
+            '不': '不可以乱扔垃圾。',
+            '子': '我是一个好孩子。',
+            '在': '小猫在沙发上睡觉。',
+            '头': '我的头上戴着帽子。',
+            '我': '我爱我的家。',
+            '房': '我家的房子很漂亮。',
         }
         
+        # 52个汉字的记忆提示（帮助记忆字形）
         tips = {
-            '人': '人字像一个人站着的样子',
-            '口': '口字像张开的嘴巴',
-            '手': '手字上面是手指',
-            '足': '足字下面像脚',
-            '日': '日字像太阳',
+            # 初级 - 自然
+            '日': '日字像一个太阳，中间一横是阳光',
+            '天': '天字像人头顶着一片天',
             '月': '月字像弯弯的月亮',
-            '水': '水字像流动的水',
+            '风': '风字里面有个虫，风吹虫子飞',
+            # 初级 - 家人
+            '爸': '爸字上面是父，下面是巴',
+            '妈': '妈字左边女，右边马，妈妈像马一样辛苦',
+            '宝': '宝字有个宝盖头，像房子保护宝贝',
+            '姐': '姐字左边女，右边且，姐姐是女孩',
+            # 初级 - 动作/方位
+            '开': '开字像两只手把门打开',
+            '关': '关字像把门关上',
+            '地': '地字左边土，土地的地',
+            '里': '里字像田地里面',
+            '他': '他字左边人，说的是别人',
+            '工': '工字像工人用的工具',
+            '儿': '儿字像小孩子的两条腿',
+            '老': '老字上面土，下面匕，老人拄拐杖',
+            # 中级 - 生活
+            '好': '好字左边女右边子，女孩和男孩在一起',
+            '饭': '饭字左边食，吃的东西',
+            '看': '看字上面手，下面目，用手遮眼睛看',
+            '玩': '玩字左边王，右边元，像玩玉',
+            '叔': '叔字上面上，下面又，叔叔比爸爸小',
+            '自': '自字像一个鼻子，指自己',
+            '姑': '姑字左边女，右边古，姑姑是女的',
+            '娘': '娘字左边女，右边良，好姑娘',
+            # 中级 - 自然元素
             '火': '火字像燃烧的火焰',
-            '山': '山字像三座山峰',
-            '石': '石字像一块石头',
-            '田': '田字像田地的样子',
-            '土': '土字像土堆',
-            '大': '大字像人张开双臂',
-            '小': '小字中间一竖两边两点',
-            '上': '上字一横在上面',
-            '下': '下字一横在下面',
-            '左': '左字有个工字',
-            '右': '右字有个口字',
-            '天': '天字像人头顶着天',
-            '地': '地字有个土字旁',
-            '花': '花字有个草字头',
-            '草': '草字有个草字头',
-            '树': '树字有个木字旁',
-            '鸟': '鸟字像一只小鸟',
+            '土': '土字像土堆的样子',
+            '水': '水字像流动的水',
+            '电': '电字像闪电的样子',
+            '木': '木字像一棵树',
+            '比': '比字像两个人站一起比较',
+            '图': '图字外面是框，里面是冬',
+            '树': '树字左边木，树是木头做的',
+            # 高级 - 数字
+            '一': '一字就是一横，最简单',
+            '三': '三字是三横，一二三',
+            '四': '四字像一个小方框',
+            '五': '五字上下两横，中间交叉',
+            # 高级 - 动物
+            '羊': '羊字上面两个角，像羊头',
+            '白': '白字像太阳刚出来，白白的',
+            '牛': '牛字像牛头，上面是牛角',
+            '鼠': '鼠字上面是老鼠的头',
+            # 高级 - 其他
+            '心': '心字像一颗爱心的形状',
+            '可': '可字左边一竖，右边口',
+            '说': '说字左边言，说话用嘴巴',
+            '两': '两字里面有两横，表示两个',
+            '男': '男字上面田，下面力，男人在田里干活',
+            '你': '你字左边人，右边尔，指对面的人',
+            '不': '不字像一横被挡住了',
+            '子': '子字像小宝宝的样子',
+            '在': '在字像人站在土地上',
+            '头': '头字上面是头发',
+            '我': '我字像手拿着武器保护自己',
+            '房': '房字有个户，房子有门户',
         }
         
-        self.sentence_btn.text = sentences.get(char, f'我认识"{char}"这个字。')
-        self.tip_btn.text = tips.get(char, f'"{char}"是一个常用字')
+        self.sentence_btn.text = sentences.get(char, f'这是"{char}"字，跟我读一遍吧！')
+        self.tip_btn.text = tips.get(char, f'仔细看看"{char}"字长什么样子')
 
 
 class ChineseQuizScreen(Screen):
@@ -1329,19 +1387,21 @@ class ChineseQuizScreen(Screen):
                         create_firework(self, instance.center_x, instance.center_y)
                 except:
                     pass
+            delay = 2.5  # 答对延迟2.5秒，等表扬播完
         else:
             self.feedback_label.text = f'不对哦，是 "{correct_answer}"'
             self.feedback_label.color = get_color_from_hex('#F44336')
             # 答错动画
             animate_wrong(instance)
             play_encourage()  # 播放鼓励
+            delay = 2.0  # 答错延迟2.0秒
         
         self.score_label.text = f'★ {self.session.score}'
         
         for btn in self.answers_layout.children:
             btn.disabled = True
         
-        Clock.schedule_once(lambda dt: self.next_question(), 1.5)
+        Clock.schedule_once(lambda dt: self.next_question(), delay)
     
     def show_result(self):
         stars = self.logic.calculate_stars(self.session)
@@ -2445,6 +2505,8 @@ class ChineseChallengeScreen(Screen):
                 hint_word = word
             self.char_label.text = hint_word
             self.question_label.text = '找出里面的字！'
+            # 朗读词语
+            Clock.schedule_once(lambda dt, w=hint_word: speak(w), 0.3)
         elif mode == 'listen':
             # 听音选字
             self.char_label.text = '听'
@@ -2888,9 +2950,15 @@ class ChineseWriteScreen(Screen):
         # 显示第一页
         self.update_char_buttons()
         
-        # 选择第一个字
-        if self.all_chars:
-            self.select_char_by_name(self.all_chars[0][0])
+        # 不在这里选择第一个字，等用户进入页面时再选择
+    
+    def on_enter(self):
+        """进入页面时选择第一个字"""
+        if self.all_chars and not self.current_char:
+            # 只设置字符，不朗读
+            char = self.all_chars[0][0]
+            self.current_char = char
+            self.write_canvas.set_guide_char(char)
     
     def update_char_buttons(self):
         """更新汉字按钮显示"""
@@ -3012,21 +3080,23 @@ class ChineseWriteScreen(Screen):
             speak('先写字再打分哦')
             return
         
+        # 先停止之前的音频
+        if audio:
+            audio.stop()
+        
         # 计算评分
         score = self.calculate_score()
         
-        # 显示评分和反馈
+        # 显示评分和反馈（只播放一个声音）
         if score >= 90:
             self.score_label.text = '太棒了!'
             self.score_label.color = get_color_from_hex('#4CAF50')
-            speak('哇，写得太棒了！毛毛给你点赞！')
-            play_praise()
+            play_praise()  # 只播放表扬
             # 庆祝动画
             self.show_celebration()
         elif score >= 70:
             self.score_label.text = '很好!'
             self.score_label.color = get_color_from_hex('#8BC34A')
-            speak('写得很好！继续加油！')
             play_praise()
         elif score >= 50:
             self.score_label.text = '不错'
@@ -3035,7 +3105,6 @@ class ChineseWriteScreen(Screen):
         else:
             self.score_label.text = '加油'
             self.score_label.color = get_color_from_hex('#FF5722')
-            speak('没关系，再试一次吧！')
             play_encourage()
     
     def calculate_score(self):
@@ -3097,12 +3166,12 @@ class WriteCanvas(Widget):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.guide_char = '人'
+        self.guide_char = '日'  # 使用新汉字表中的第一个字
         self.lines = []
         self.current_line = []
         # 创建用于显示汉字的Label - 毛毛红色
         self.char_label = Label(
-            text='人',
+            text='日',
             font_size=sp(200),
             color=(0.9, 0.3, 0.3, 0.5),  # 毛毛红色半透明
             halign='center',
@@ -3226,7 +3295,7 @@ class WriteCanvas(Widget):
         # 汉字显示在画布中央，需要调整大小和位置与红色底字对齐
         
         # 调整参数让笔画与红色汉字重合
-        char_size = min(self.width, self.height) * 0.55  # 稍微缩小
+        char_size = min(self.width, self.height) * 0.55
         
         # 稍微向右上偏移
         char_left = self.center_x - char_size / 2 + char_size * 0.02
@@ -3555,7 +3624,21 @@ class ChineseStoryScreen(Screen):
         char_scroll.add_widget(char_box)
         layout.add_widget(char_scroll)
         self.add_widget(layout)
-        self.show_story('人')
+        # 不在这里调用show_story，等用户进入页面时再显示
+        # 先设置默认显示内容（不朗读）
+        self._init_display('日')
+    
+    def _init_display(self, char):
+        """初始化显示（不朗读）"""
+        if char not in self.CHAR_STORIES:
+            return
+        self.current_char = char
+        self.current_index = self.char_list.index(char) if char in self.char_list else 0
+        data = self.CHAR_STORIES[char]
+        self.char_label.text = char
+        self.title_label.text = f'{char} 的故事'
+        self.story_btn.text = data['story']
+        self.origin_label.text = data['origin']
     
     def select_char(self, instance):
         self.show_story(instance.text)
@@ -3583,6 +3666,11 @@ class ChineseStoryScreen(Screen):
     def next_char(self, instance):
         self.current_index = (self.current_index + 1) % len(self.char_list)
         self.show_story(self.char_list[self.current_index])
+    
+    def on_leave(self):
+        """离开页面时停止音频"""
+        if audio:
+            audio.stop()
 
 
 
