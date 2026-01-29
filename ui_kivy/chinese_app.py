@@ -3223,38 +3223,31 @@ class WriteCanvas(Widget):
         median = self.animation_medians[self.animation_index]
         
         # hanzi-writer-data 坐标系: 0-1024
-        # X: 0在左，1024在右
-        # Y: 0在底部，1024在顶部（需要翻转才能与显示的汉字对齐）
+        # 经测试发现需要Y轴不翻转才能正确显示
         
-        # 汉字显示在画布中央，大小约为画布短边的65%
+        # 汉字显示在画布中央
         char_size = min(self.width, self.height) * 0.65
         
-        # 汉字区域的左下角坐标
         char_left = self.center_x - char_size / 2
         char_bottom = self.center_y - char_size / 2
         
         # 转换坐标
         actual_points = []
         for point in median:
-            # point 是 [x, y]，范围 0-1024
             rx = point[0] / 1024.0
             ry = point[1] / 1024.0
             
-            # X轴正常
             x = char_left + rx * char_size
-            # Y轴需要翻转！因为数据中Y=1024是顶部，但我们需要Y=0是顶部
-            y = char_bottom + (1.0 - ry) * char_size
+            # 不翻转Y轴
+            y = char_bottom + ry * char_size
             actual_points.extend([x, y])
         
-        # 逐步绘制这一笔
         self.current_stroke_points = actual_points
         self.stroke_draw_index = 0
         
-        # 初始化这一笔的线条
         if len(actual_points) >= 2:
             self.animated_lines.append([actual_points[0], actual_points[1]])
         
-        # 开始动画
         Clock.schedule_interval(self.animate_stroke_step, 0.03)
     
     def animate_stroke_step(self, dt):
