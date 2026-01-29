@@ -3234,39 +3234,52 @@ class WriteCanvas(Widget):
             y = offset_y + (1 - ry) * char_size  # Y轴翻转
             actual_points.extend([x, y])
         
+        # 如果只有两个点，插值生成更多点以实现动画效果
+        if len(actual_points) == 4:
+            x1, y1, x2, y2 = actual_points
+            steps = 10  # 分10步绘制
+            interpolated = []
+            for i in range(steps + 1):
+                t = i / steps
+                x = x1 + (x2 - x1) * t
+                y = y1 + (y2 - y1) * t
+                interpolated.extend([x, y])
+            actual_points = interpolated
+        
         # 逐步绘制这一笔
         self.current_stroke_points = actual_points
         self.stroke_draw_index = 0
-        self.animated_lines.append([])
+        self.animated_lines.append([actual_points[0], actual_points[1]])  # 初始化第一个点
         
-        Clock.schedule_interval(self.animate_stroke_step, 0.03)
+        Clock.schedule_interval(self.animate_stroke_step, 0.05)
     
     def animate_stroke_step(self, dt):
         """动画绘制笔画的一步"""
-        if self.stroke_draw_index >= len(self.current_stroke_points) - 2:
+        self.stroke_draw_index += 2
+        
+        if self.stroke_draw_index >= len(self.current_stroke_points):
             # 这一笔画完了
             Clock.unschedule(self.animate_stroke_step)
             self.animation_index += 1
             # 延迟后画下一笔
-            Clock.schedule_once(lambda dt: self.animate_next_stroke(), 0.3)
+            Clock.schedule_once(lambda dt: self.animate_next_stroke(), 0.4)
             return False
         
-        # 添加两个点
+        # 添加下一个点
         idx = self.stroke_draw_index
         self.animated_lines[-1].extend([
             self.current_stroke_points[idx],
             self.current_stroke_points[idx + 1]
         ])
-        self.stroke_draw_index += 2
         
         # 重绘
         self.canvas.after.clear()
         with self.canvas.after:
-            # 动画笔画用绿色
-            Color(0.2, 0.7, 0.3, 1)
+            # 动画笔画用绿色粗线
+            Color(0.1, 0.6, 0.2, 1)
             for line in self.animated_lines:
                 if len(line) >= 4:
-                    Line(points=line, width=dp(8), cap='round', joint='round')
+                    Line(points=line, width=dp(10), cap='round', joint='round')
         
         return True
 
