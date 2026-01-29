@@ -5,11 +5,11 @@ package.domain = com.lele
 
 source.dir = .
 source.include_exts = py,png,jpg,jpeg,kv,atlas,json,ttc,ttf,mp3
-source.include_patterns = 汪汪队图片/*,core/*,ui_kivy/*,audio/generated/*
+source.include_patterns = 汪汪队图片/*,core/*,ui_kivy/*,audio/generated/*,stroke_data/*
 source.exclude_patterns = backup_*,build,dist,__pycache__,.git,.github,*.pyc,*.pyo
 source.main = main.py
 
-version = 1.8.0
+version = 1.8.2
 
 # 应用图标 (莱德)
 icon.filename = icon.png

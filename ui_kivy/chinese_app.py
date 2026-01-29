@@ -687,11 +687,11 @@ class ChineseMenuScreen(Screen):
             if os.path.exists(audio_dir):
                 files = os.listdir(audio_dir)
                 mp3_count = len([f for f in files if f.endswith('.mp3')])
-                self.debug_label.text = f'v1.8.0 | 音频:{mp3_count}个 | {PLATFORM}'
+                self.debug_label.text = f'v1.8.2 | 音频:{mp3_count}个 | {PLATFORM}'
             else:
-                self.debug_label.text = f'v1.8.0 | 音频:未找到 | {PLATFORM} | {audio_dir[:30]}...'
+                self.debug_label.text = f'v1.8.2 | 音频:未找到 | {PLATFORM} | {audio_dir[:30]}...'
         except Exception as e:
-            self.debug_label.text = f'v1.8.0 | 音频错误:{str(e)[:20]}'
+            self.debug_label.text = f'v1.8.2 | 音频错误:{str(e)[:20]}'
     
     def animate_title(self):
         """标题颜色动画"""
@@ -2992,18 +2992,18 @@ class ChineseWriteScreen(Screen):
         self.write_canvas.clear_drawing()
         
         # 获取笔画数据
-        strokes = STROKE_DATA.get(self.current_char)
-        if not strokes:
+        medians = get_stroke_medians(self.current_char)
+        if not medians:
             speak(f'这个字还没有笔顺数据')
             self.hint_label.text = '毛毛说：这个字的笔顺还在准备中...'
             return
         
         # 开始动画
-        self.hint_label.text = f'毛毛说：看好了，{self.current_char}字这样写！'
+        self.hint_label.text = f'毛毛说：看好了，{self.current_char}字这样写！（{len(medians)}笔）'
         speak(self.current_char)
         
         # 逐笔播放动画
-        self.write_canvas.start_stroke_animation(strokes)
+        self.write_canvas.start_stroke_animation(medians)
     
     def grade_writing(self, instance):
         """评判写字质量 - 简单的覆盖率评分"""
@@ -3196,16 +3196,15 @@ class WriteCanvas(Widget):
             return True
         return super().on_touch_up(touch)
     
-    def start_stroke_animation(self, strokes):
+    def start_stroke_animation(self, medians):
         """开始笔顺动画
         
         Args:
-            strokes: 笔画列表，每个笔画是相对坐标点列表 [(x1,y1), (x2,y2), ...]
-                    坐标范围 0-1，表示在汉字区域内的相对位置
+            medians: 笔画中线列表，每笔是坐标点列表 [[x1,y1], [x2,y2], ...]
+                    坐标范围 0-1024，Y轴向上（需要翻转）
         """
-        self.animation_strokes = strokes
+        self.animation_medians = medians
         self.animation_index = 0
-        self.animation_progress = 0
         self.animated_lines = []
         
         # 清除之前的绘制
@@ -3217,41 +3216,42 @@ class WriteCanvas(Widget):
     
     def animate_next_stroke(self):
         """动画绘制下一笔"""
-        if self.animation_index >= len(self.animation_strokes):
+        if self.animation_index >= len(self.animation_medians):
             # 动画完成
             return
         
-        stroke = self.animation_strokes[self.animation_index]
+        median = self.animation_medians[self.animation_index]
         
-        # 将相对坐标转换为实际坐标
-        char_size = min(self.width, self.height) * 0.7
-        offset_x = self.center_x - char_size / 2
-        offset_y = self.center_y - char_size / 2
+        # 计算画布中汉字区域的边界
+        # 数据坐标系: 0-1024, Y轴向上
+        # 画布坐标系: Y轴向上（Kivy默认）
+        padding = min(self.width, self.height) * 0.1
+        left = self.x + padding
+        bottom = self.y + padding
+        char_width = self.width - 2 * padding
+        char_height = self.height - 2 * padding
         
+        # 转换坐标
         actual_points = []
-        for rx, ry in stroke:
-            x = offset_x + rx * char_size
-            y = offset_y + (1 - ry) * char_size  # Y轴翻转
+        for point in median:
+            # point 是 [x, y]，范围 0-1024
+            rx = point[0] / 1024.0  # 归一化到 0-1
+            ry = point[1] / 1024.0  # 归一化到 0-1
+            
+            x = left + rx * char_width
+            y = bottom + ry * char_height  # Y轴方向相同，不需要翻转
             actual_points.extend([x, y])
-        
-        # 如果只有两个点，插值生成更多点以实现动画效果
-        if len(actual_points) == 4:
-            x1, y1, x2, y2 = actual_points
-            steps = 10  # 分10步绘制
-            interpolated = []
-            for i in range(steps + 1):
-                t = i / steps
-                x = x1 + (x2 - x1) * t
-                y = y1 + (y2 - y1) * t
-                interpolated.extend([x, y])
-            actual_points = interpolated
         
         # 逐步绘制这一笔
         self.current_stroke_points = actual_points
         self.stroke_draw_index = 0
-        self.animated_lines.append([actual_points[0], actual_points[1]])  # 初始化第一个点
         
-        Clock.schedule_interval(self.animate_stroke_step, 0.05)
+        # 初始化这一笔的线条（至少需要第一个点）
+        if len(actual_points) >= 2:
+            self.animated_lines.append([actual_points[0], actual_points[1]])
+        
+        # 开始动画
+        Clock.schedule_interval(self.animate_stroke_step, 0.03)
     
     def animate_stroke_step(self, dt):
         """动画绘制笔画的一步"""
@@ -3262,15 +3262,16 @@ class WriteCanvas(Widget):
             Clock.unschedule(self.animate_stroke_step)
             self.animation_index += 1
             # 延迟后画下一笔
-            Clock.schedule_once(lambda dt: self.animate_next_stroke(), 0.4)
+            Clock.schedule_once(lambda dt: self.animate_next_stroke(), 0.3)
             return False
         
         # 添加下一个点
         idx = self.stroke_draw_index
-        self.animated_lines[-1].extend([
-            self.current_stroke_points[idx],
-            self.current_stroke_points[idx + 1]
-        ])
+        if idx + 1 < len(self.current_stroke_points):
+            self.animated_lines[-1].extend([
+                self.current_stroke_points[idx],
+                self.current_stroke_points[idx + 1]
+            ])
         
         # 重绘
         self.canvas.after.clear()
@@ -3279,149 +3280,57 @@ class WriteCanvas(Widget):
             Color(0.1, 0.6, 0.2, 1)
             for line in self.animated_lines:
                 if len(line) >= 4:
-                    Line(points=line, width=dp(10), cap='round', joint='round')
+                    Line(points=line, width=dp(8), cap='round', joint='round')
         
         return True
 
 
 # ============================================================
-# 笔画数据 - 相对坐标 (0-1)
-# 每个汉字的笔画列表，每笔是点的列表
+# 笔画数据 - 从 hanzi-writer-data 加载
 # ============================================================
-STROKE_DATA = {
-    '一': [
-        [(0.1, 0.5), (0.5, 0.5), (0.9, 0.5)],  # 横
-    ],
-    '二': [
-        [(0.2, 0.35), (0.8, 0.35)],  # 上横
-        [(0.15, 0.65), (0.85, 0.65)],  # 下横
-    ],
-    '三': [
-        [(0.25, 0.25), (0.75, 0.25)],  # 上横
-        [(0.2, 0.5), (0.8, 0.5)],  # 中横
-        [(0.15, 0.75), (0.85, 0.75)],  # 下横
-    ],
-    '人': [
-        [(0.5, 0.15), (0.25, 0.85)],  # 撇
-        [(0.5, 0.15), (0.75, 0.85)],  # 捺
-    ],
-    '大': [
-        [(0.2, 0.35), (0.8, 0.35)],  # 横
-        [(0.5, 0.15), (0.2, 0.85)],  # 撇
-        [(0.5, 0.15), (0.8, 0.85)],  # 捺
-    ],
-    '小': [
-        [(0.5, 0.2), (0.5, 0.8)],  # 竖钩
-        [(0.3, 0.4), (0.35, 0.55)],  # 左点
-        [(0.7, 0.4), (0.65, 0.55)],  # 右点
-    ],
-    '口': [
-        [(0.3, 0.25), (0.3, 0.75)],  # 左竖
-        [(0.3, 0.25), (0.7, 0.25)],  # 上横
-        [(0.7, 0.25), (0.7, 0.75)],  # 右竖
-        [(0.3, 0.75), (0.7, 0.75)],  # 下横
-    ],
-    '日': [
-        [(0.3, 0.2), (0.3, 0.8)],  # 左竖
-        [(0.3, 0.2), (0.7, 0.2)],  # 上横
-        [(0.7, 0.2), (0.7, 0.8)],  # 右竖
-        [(0.3, 0.5), (0.7, 0.5)],  # 中横
-        [(0.3, 0.8), (0.7, 0.8)],  # 下横
-    ],
-    '月': [
-        [(0.35, 0.15), (0.25, 0.85)],  # 撇
-        [(0.35, 0.2), (0.35, 0.85)],  # 左竖
-        [(0.35, 0.2), (0.7, 0.2)],  # 上横折
-        [(0.7, 0.2), (0.7, 0.85)],  # 右竖
-        [(0.35, 0.45), (0.7, 0.45)],  # 中横
-        [(0.35, 0.85), (0.7, 0.85)],  # 下横
-    ],
-    '水': [
-        [(0.5, 0.15), (0.5, 0.85)],  # 竖钩
-        [(0.25, 0.35), (0.45, 0.5)],  # 左上点
-        [(0.2, 0.6), (0.4, 0.75)],  # 左下撇
-        [(0.55, 0.5), (0.8, 0.75)],  # 右捺
-    ],
-    '火': [
-        [(0.3, 0.35), (0.35, 0.5)],  # 左点
-        [(0.7, 0.35), (0.65, 0.5)],  # 右点
-        [(0.5, 0.2), (0.25, 0.85)],  # 撇
-        [(0.5, 0.2), (0.75, 0.85)],  # 捺
-    ],
-    '山': [
-        [(0.5, 0.2), (0.5, 0.8)],  # 中竖
-        [(0.2, 0.45), (0.2, 0.8)],  # 左竖
-        [(0.8, 0.45), (0.8, 0.8)],  # 右竖
-        [(0.2, 0.8), (0.8, 0.8)],  # 下横
-    ],
-    '石': [
-        [(0.3, 0.2), (0.7, 0.2)],  # 上横
-        [(0.5, 0.2), (0.25, 0.45)],  # 撇
-        [(0.3, 0.45), (0.3, 0.85)],  # 左竖
-        [(0.3, 0.45), (0.7, 0.45)],  # 中横
-        [(0.7, 0.45), (0.7, 0.85)],  # 右竖
-        [(0.3, 0.85), (0.7, 0.85)],  # 下横
-    ],
-    '田': [
-        [(0.25, 0.2), (0.25, 0.8)],  # 左竖
-        [(0.25, 0.2), (0.75, 0.2)],  # 上横
-        [(0.75, 0.2), (0.75, 0.8)],  # 右竖
-        [(0.25, 0.8), (0.75, 0.8)],  # 下横
-        [(0.5, 0.2), (0.5, 0.8)],  # 中竖
-        [(0.25, 0.5), (0.75, 0.5)],  # 中横
-    ],
-    '土': [
-        [(0.3, 0.35), (0.7, 0.35)],  # 上横
-        [(0.5, 0.2), (0.5, 0.8)],  # 竖
-        [(0.2, 0.8), (0.8, 0.8)],  # 下横
-    ],
-    '上': [
-        [(0.5, 0.25), (0.5, 0.75)],  # 竖
-        [(0.35, 0.45), (0.65, 0.45)],  # 短横
-        [(0.25, 0.75), (0.75, 0.75)],  # 长横
-    ],
-    '下': [
-        [(0.25, 0.25), (0.75, 0.25)],  # 横
-        [(0.5, 0.25), (0.5, 0.75)],  # 竖
-        [(0.5, 0.55), (0.65, 0.75)],  # 点
-    ],
-    '左': [
-        [(0.3, 0.2), (0.7, 0.2)],  # 横
-        [(0.5, 0.2), (0.25, 0.5)],  # 撇
-        [(0.25, 0.5), (0.75, 0.5)],  # 横
-        [(0.35, 0.5), (0.35, 0.85)],  # 竖
-        [(0.35, 0.85), (0.7, 0.85)],  # 横
-    ],
-    '右': [
-        [(0.3, 0.2), (0.7, 0.2)],  # 横
-        [(0.5, 0.2), (0.25, 0.5)],  # 撇
-        [(0.3, 0.45), (0.3, 0.8)],  # 左竖
-        [(0.3, 0.45), (0.7, 0.45)],  # 上横
-        [(0.7, 0.45), (0.7, 0.8)],  # 右竖
-        [(0.3, 0.8), (0.7, 0.8)],  # 下横
-    ],
-    '天': [
-        [(0.25, 0.25), (0.75, 0.25)],  # 上横
-        [(0.3, 0.45), (0.7, 0.45)],  # 下横
-        [(0.5, 0.25), (0.2, 0.85)],  # 撇
-        [(0.5, 0.25), (0.8, 0.85)],  # 捺
-    ],
-    '手': [
-        [(0.25, 0.2), (0.75, 0.2)],  # 第一横
-        [(0.3, 0.35), (0.7, 0.35)],  # 第二横
-        [(0.35, 0.5), (0.65, 0.5)],  # 第三横
-        [(0.5, 0.2), (0.5, 0.85)],  # 竖钩
-    ],
-    '足': [
-        [(0.3, 0.15), (0.3, 0.5)],  # 口左竖
-        [(0.3, 0.15), (0.7, 0.15)],  # 口上横
-        [(0.7, 0.15), (0.7, 0.5)],  # 口右竖
-        [(0.3, 0.5), (0.7, 0.5)],  # 口下横
-        [(0.5, 0.5), (0.5, 0.85)],  # 竖
-        [(0.25, 0.65), (0.75, 0.65)],  # 横
-        [(0.2, 0.85), (0.8, 0.85)],  # 下横
-    ],
-}
+import json as _json
+
+def _load_stroke_data():
+    """加载笔顺数据"""
+    import os
+    # 尝试多个可能的路径
+    possible_paths = [
+        os.path.join(os.path.dirname(__file__), '..', 'stroke_data', 'all_strokes.json'),
+        os.path.join(os.path.dirname(__file__), 'stroke_data', 'all_strokes.json'),
+        'stroke_data/all_strokes.json',
+    ]
+    
+    for path in possible_paths:
+        try:
+            abs_path = os.path.abspath(path)
+            if os.path.exists(abs_path):
+                with open(abs_path, 'r', encoding='utf-8') as f:
+                    data = _json.load(f)
+                    print(f"[stroke] 加载笔顺数据: {len(data)} 个汉字")
+                    return data
+        except Exception as e:
+            print(f"[stroke] 加载失败 {path}: {e}")
+    
+    print("[stroke] 未找到笔顺数据文件")
+    return {}
+
+STROKE_JSON_DATA = None  # 延迟加载
+
+def get_stroke_medians(char):
+    """获取汉字的笔画中线数据
+    
+    Returns:
+        笔画列表，每笔是坐标点列表 [[x1,y1], [x2,y2], ...]
+        坐标范围 0-1024
+    """
+    global STROKE_JSON_DATA
+    if STROKE_JSON_DATA is None:
+        STROKE_JSON_DATA = _load_stroke_data()
+    
+    char_data = STROKE_JSON_DATA.get(char)
+    if char_data:
+        return char_data.get('medians', [])
+    return None
 
 
 class ChineseStoryScreen(Screen):
