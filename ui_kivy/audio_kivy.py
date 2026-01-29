@@ -201,8 +201,8 @@ def find_local_audio(text):
     # 这里text可能是拼音字符串，需要特殊处理
     # 暂时跳过拼音的本地查找，使用TTS
     
-    # 词组 - 使用第一个汉字的Unicode编码
-    if len(text) >= 2:
+    # 词组 - 只匹配2-4个字的短词组，避免长句子误匹配
+    if 2 <= len(text) <= 4:
         first_char = text[0]
         code = char_to_code(first_char)
         filepath = os.path.join(audio_dir, f"word_{code}.mp3")
