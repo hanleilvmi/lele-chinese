@@ -3222,36 +3222,35 @@ class WriteCanvas(Widget):
         
         median = self.animation_medians[self.animation_index]
         
-        # 计算画布中汉字区域的边界
-        # hanzi-writer-data 坐标系: 0-1024, Y轴向上
-        # Kivy 坐标系: Y轴向上，但汉字显示是从上往下写
-        # 所以需要翻转Y轴
+        # hanzi-writer-data 坐标系: 0-1024
+        # X: 0在左，1024在右
+        # Y: 0在底部，1024在顶部（需要翻转才能与显示的汉字对齐）
         
-        # 汉字区域（与红色底字对齐）
-        padding = min(self.width, self.height) * 0.05
-        left = self.x + padding
-        bottom = self.y + padding
-        char_width = self.width - 2 * padding
-        char_height = self.height - 2 * padding
+        # 汉字显示在画布中央，大小约为画布短边的65%
+        char_size = min(self.width, self.height) * 0.65
+        
+        # 汉字区域的左下角坐标
+        char_left = self.center_x - char_size / 2
+        char_bottom = self.center_y - char_size / 2
         
         # 转换坐标
         actual_points = []
         for point in median:
             # point 是 [x, y]，范围 0-1024
-            rx = point[0] / 1024.0  # 归一化到 0-1
-            ry = point[1] / 1024.0  # 归一化到 0-1
+            rx = point[0] / 1024.0
+            ry = point[1] / 1024.0
             
-            x = left + rx * char_width
-            # Y轴翻转：原数据Y=0在底部，Y=1024在顶部
-            # 但汉字显示Y=0应该在顶部
-            y = bottom + (1.0 - ry) * char_height
+            # X轴正常
+            x = char_left + rx * char_size
+            # Y轴需要翻转！因为数据中Y=1024是顶部，但我们需要Y=0是顶部
+            y = char_bottom + (1.0 - ry) * char_size
             actual_points.extend([x, y])
         
         # 逐步绘制这一笔
         self.current_stroke_points = actual_points
         self.stroke_draw_index = 0
         
-        # 初始化这一笔的线条（至少需要第一个点）
+        # 初始化这一笔的线条
         if len(actual_points) >= 2:
             self.animated_lines.append([actual_points[0], actual_points[1]])
         
